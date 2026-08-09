@@ -132,29 +132,29 @@ export default function ScheduleManagerApp() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col font-sans w-full max-w-md mx-auto overflow-x-hidden border-x border-zinc-200 shadow-2xl relative min-w-0">
-      {/* HEADER / NOTEBOOK BINDER TOP BAR */}
-      <header className="bg-zinc-100 border-b border-zinc-200 sticky top-0 z-20">
+    <div className="min-h-screen bg-white text-black flex flex-col font-sans w-full max-w-md mx-auto overflow-x-hidden border-x border-black relative min-w-0">
+      {/* HEADER TOP BAR */}
+      <header className="bg-white border-b border-black sticky top-0 z-20">
         <div className="px-4 py-3 flex items-center justify-between">
-          <h1 className="text-base font-bold tracking-tight text-zinc-900 flex items-center gap-2 font-mono">
-            <BookOpen className="w-5 h-5 text-zinc-700" /> SCHEDULE_PLANNER
+          <h1 className="text-base font-bold tracking-tight text-black flex items-center gap-2 font-mono">
+            <BookOpen className="w-5 h-5 text-black" /> SCHEDULE_PLANNER
           </h1>
 
           {activeTab === 0 && (
             <div className="flex items-center gap-2">
-              <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded border ${
+              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-black ${
                 isEditMode
-                  ? 'bg-zinc-900 text-zinc-50 border-zinc-900'
-                  : 'bg-white text-zinc-600 border-zinc-300'
+                  ? 'bg-black text-white'
+                  : 'bg-white text-black'
               }`}>
                 {isEditMode ? 'EDIT' : 'VIEW'}
               </span>
               <button
                 onClick={() => setIsEditMode(!isEditMode)}
-                className={`p-1.5 rounded border transition ${
+                className={`p-1.5 rounded border border-black transition ${
                   isEditMode
-                    ? 'bg-zinc-900 border-zinc-900 text-zinc-50'
-                    : 'bg-white border-zinc-300 text-zinc-700 hover:bg-zinc-200'
+                    ? 'bg-black text-white'
+                    : 'bg-white text-black hover:bg-zinc-100'
                 }`}
                 title="Toggle Edit Mode"
               >
@@ -165,7 +165,7 @@ export default function ScheduleManagerApp() {
         </div>
 
         {/* SCROLLABLE HORIZONTAL TAB STRIP */}
-        <div className="flex gap-1 border-t border-zinc-200 overflow-x-auto no-scrollbar whitespace-nowrap px-3 py-1.5 bg-zinc-100/90">
+        <div className="flex gap-1.5 border-t border-black overflow-x-auto no-scrollbar whitespace-nowrap px-3 py-2 bg-white">
           <TabButton icon={<Calendar />} label="Schedules" active={activeTab === 0} onClick={() => handleTabSwitch(0)} />
           <TabButton icon={<User />} label="Assignees" active={activeTab === 1} onClick={() => handleTabSwitch(1)} />
           <TabButton icon={<Wrench />} label="Tools" active={activeTab === 2} onClick={() => handleTabSwitch(2)} />
@@ -180,7 +180,7 @@ export default function ScheduleManagerApp() {
       </header>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 w-full p-3.5 min-w-0">
+      <main className="flex-1 w-full p-3.5 min-w-0 bg-white">
         {activeTab === 0 && (
           <ScheduleTab
             selectedDate={selectedDate}
@@ -227,13 +227,13 @@ export default function ScheduleManagerApp() {
       {/* UNSAVED CHANGES GUARD MODAL */}
       {pendingTab !== null && (
         <Modal onClose={() => setPendingTab(null)} title="Unsaved Edits">
-          <p className="text-zinc-700 text-xs font-mono mb-5 leading-relaxed">
+          <p className="text-black text-xs font-mono mb-5 leading-relaxed">
             Unsaved template edits exist. Leaving now will discard your changes.
           </p>
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setPendingTab(null)}
-              className="px-3 py-1.5 text-xs font-mono bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-700 border border-zinc-300"
+              className="px-3 py-1.5 text-xs font-mono bg-white hover:bg-zinc-100 border border-black text-black rounded"
             >
               Keep Editing
             </button>
@@ -244,7 +244,7 @@ export default function ScheduleManagerApp() {
                 setActiveTab(pendingTab);
                 setPendingTab(null);
               }}
-              className="px-3 py-1.5 text-xs font-mono bg-rose-600 hover:bg-rose-700 rounded text-white font-semibold"
+              className="px-3 py-1.5 text-xs font-mono bg-black hover:bg-zinc-800 text-white font-semibold rounded"
             >
               Discard & Leave
             </button>
@@ -260,15 +260,15 @@ function TabButton({ icon, label, active, onClick, hasBadge }) {
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono transition rounded-md ${
+      className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono transition rounded border border-black ${
         active
-          ? 'bg-zinc-900 text-zinc-50 font-bold shadow-sm'
-          : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/60'
+          ? 'bg-black text-white font-bold'
+          : 'bg-white text-black hover:bg-zinc-100'
       }`}
     >
       {React.cloneElement(icon, { className: 'w-3.5 h-3.5' })}
       <span>{label}</span>
-      {hasBadge && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
+      {hasBadge && <span className="w-2 h-2 rounded-full bg-amber-500" />}
     </button>
   );
 }
@@ -309,7 +309,7 @@ function ScheduleTab({
   };
 
   return (
-    <div className="space-y-3.5 min-w-0">
+    <div className="space-y-3.5 min-w-0 bg-white">
       {/* 7-DAY WEEK STRIP HEADER */}
       <WeekHeaderStrip
         selectedDate={selectedDate}
@@ -319,9 +319,9 @@ function ScheduleTab({
 
       {/* SCHEDULE CARDS LIST */}
       {displayedItems.length === 0 ? (
-        <div className="text-center py-12 bg-zinc-100/80 rounded-lg border border-dashed border-zinc-300">
-          <p className="text-zinc-600 text-xs font-mono">NO ENTRIES FOR THIS DATE</p>
-          <p className="text-zinc-400 text-[11px] font-mono mt-1">Tap + below to add a record.</p>
+        <div className="text-center py-12 bg-white rounded border-2 border-dashed border-black">
+          <p className="text-black text-xs font-mono font-bold">NO ENTRIES FOR THIS DATE</p>
+          <p className="text-zinc-600 text-[11px] font-mono mt-1">Tap + below to add a record.</p>
         </div>
       ) : (
         <div className="space-y-2.5">
@@ -354,10 +354,10 @@ function ScheduleTab({
           setEditingItem(null);
           setShowAddEditModal(true);
         }}
-        className="fixed bottom-5 right-5 w-12 h-12 bg-zinc-900 text-zinc-50 hover:bg-zinc-800 rounded-full flex items-center justify-center shadow-2xl border border-zinc-700 transition transform active:scale-95 z-10"
+        className="fixed bottom-5 right-5 w-12 h-12 bg-black text-white hover:bg-zinc-800 rounded-full flex items-center justify-center border-2 border-black transition transform active:scale-95 z-10 shadow-lg"
         title="Add Schedule"
       >
-        <Plus className="w-5 h-5 stroke-[2.5]" />
+        <Plus className="w-6 h-6 stroke-[2.5]" />
       </button>
 
       {/* ADD/EDIT MODAL */}
@@ -409,12 +409,12 @@ function WeekHeaderStrip({ selectedDate, schedules, onDateSelected }) {
   })}, ${sunday.getFullYear()}`;
 
   return (
-    <div className="bg-zinc-100 border border-zinc-200 rounded-lg p-2.5 shadow-sm">
+    <div className="bg-white border-2 border-black rounded-lg p-2.5">
       {/* Week Title Bar */}
       <div className="flex items-center justify-between mb-2 px-1">
         <button
           onClick={() => shiftWeek(-1)}
-          className="p-1 text-zinc-600 hover:text-zinc-900 rounded hover:bg-zinc-200"
+          className="p-1 text-black hover:bg-zinc-100 rounded border border-black"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -426,14 +426,14 @@ function WeekHeaderStrip({ selectedDate, schedules, onDateSelected }) {
             onChange={(e) => e.target.value && onDateSelected(e.target.value)}
             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
           />
-          <span className="font-mono text-xs font-bold text-zinc-700 group-hover:text-zinc-900 transition">
+          <span className="font-mono text-xs font-bold text-black group-hover:underline">
             {rangeText}
           </span>
         </div>
 
         <button
           onClick={() => shiftWeek(1)}
-          className="p-1 text-zinc-600 hover:text-zinc-900 rounded hover:bg-zinc-200"
+          className="p-1 text-black hover:bg-zinc-100 rounded border border-black"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -456,14 +456,14 @@ function WeekHeaderStrip({ selectedDate, schedules, onDateSelected }) {
             <button
               key={iso}
               onClick={() => onDateSelected(iso)}
-              className={`flex flex-col items-center py-1.5 px-0.5 rounded transition font-mono ${
+              className={`flex flex-col items-center py-1.5 px-0.5 rounded transition font-mono border ${
                 isSelected
-                  ? 'bg-zinc-900 text-zinc-50 font-bold shadow'
-                  : 'bg-white hover:bg-zinc-200/80 text-zinc-600 border border-zinc-200'
+                  ? 'bg-black text-white border-black font-bold'
+                  : 'bg-white text-black border-black hover:bg-zinc-100'
               }`}
             >
-              <span className="text-[9px] tracking-tight opacity-75">{dayName}</span>
-              <span className="text-xs font-semibold my-0.5">{dayNum}</span>
+              <span className="text-[9px] tracking-tight">{dayName}</span>
+              <span className="text-xs font-bold my-0.5">{dayNum}</span>
 
               {/* Dot Indicators */}
               <div className="h-1.5 flex items-center justify-center gap-0.5">
@@ -471,7 +471,7 @@ function WeekHeaderStrip({ selectedDate, schedules, onDateSelected }) {
                   <span
                     key={i}
                     className={`w-1 h-1 rounded-full ${
-                      isSelected ? 'bg-zinc-50' : 'bg-zinc-400'
+                      isSelected ? 'bg-white' : 'bg-black'
                     }`}
                   />
                 ))}
@@ -510,9 +510,9 @@ function ScheduleCard({ item, assignee, tool, savedTemplate, isEditMode, onEdit,
   };
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-3 shadow-sm hover:border-zinc-300 transition min-w-0">
+    <div className="bg-white border-2 border-black rounded-lg p-3 min-w-0">
       <div className="flex justify-between items-start gap-2 min-w-0">
-        <h3 className="font-semibold text-zinc-900 text-sm leading-snug break-words min-w-0 flex-1">
+        <h3 className="font-bold text-black text-sm leading-snug break-words min-w-0 flex-1 font-mono">
           {item.address}
         </h3>
 
@@ -520,13 +520,13 @@ function ScheduleCard({ item, assignee, tool, savedTemplate, isEditMode, onEdit,
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={onEdit}
-              className="p-1 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded"
+              className="p-1 text-black hover:bg-zinc-100 rounded border border-black"
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={onDelete}
-              className="p-1 text-rose-600 hover:text-rose-700 hover:bg-zinc-100 rounded"
+              className="p-1 text-black hover:bg-zinc-100 rounded border border-black"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -534,7 +534,7 @@ function ScheduleCard({ item, assignee, tool, savedTemplate, isEditMode, onEdit,
         ) : (
           <button
             onClick={handleWhatsAppShare}
-            className="p-1.5 text-zinc-700 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 rounded border border-zinc-200 transition shrink-0"
+            className="p-1.5 text-black hover:bg-zinc-100 rounded border border-black transition shrink-0"
             title="Share via WhatsApp"
           >
             <Share2 className="w-3.5 h-3.5" />
@@ -543,12 +543,12 @@ function ScheduleCard({ item, assignee, tool, savedTemplate, isEditMode, onEdit,
       </div>
 
       <div className="flex flex-wrap gap-1.5 mt-2.5">
-        <span className="inline-flex items-center gap-1 text-[11px] font-mono bg-zinc-100 text-zinc-800 px-2 py-0.5 rounded border border-zinc-200">
-          <User className="w-3 h-3 text-zinc-500" />
+        <span className="inline-flex items-center gap-1 text-[11px] font-mono bg-white text-black px-2 py-0.5 rounded border border-black">
+          <User className="w-3 h-3 text-black" />
           {assigneeName}
         </span>
-        <span className="inline-flex items-center gap-1 text-[11px] font-mono bg-zinc-100 text-zinc-800 px-2 py-0.5 rounded border border-zinc-200">
-          <Wrench className="w-3 h-3 text-zinc-500" />
+        <span className="inline-flex items-center gap-1 text-[11px] font-mono bg-white text-black px-2 py-0.5 rounded border border-black">
+          <Wrench className="w-3 h-3 text-black" />
           {toolName}
         </span>
       </div>
@@ -602,20 +602,20 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
     <Modal onClose={onClose} title={existingItem ? 'Edit Entry' : 'New Schedule Entry'}>
       <form onSubmit={handleSubmit} className="space-y-3 font-mono text-xs">
         <div>
-          <label className="block text-zinc-600 mb-1">LOCATION / ADDRESS</label>
+          <label className="block text-black font-bold mb-1">LOCATION / ADDRESS</label>
           <input
             type="text"
             required
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            className="w-full bg-zinc-50 border border-zinc-300 rounded px-2.5 py-1.5 text-zinc-900 focus:outline-none focus:border-zinc-600"
+            className="w-full bg-white border border-black rounded px-2.5 py-1.5 text-black focus:outline-none"
             placeholder="e.g. 123 Tech Park, Cyberjaya"
           />
         </div>
 
         {/* ASSIGNEE AUTOCOMPLETE */}
         <div className="relative">
-          <label className="block text-zinc-600 mb-1">ASSIGNEE</label>
+          <label className="block text-black font-bold mb-1">ASSIGNEE</label>
           <input
             type="text"
             value={assigneeSearch}
@@ -625,19 +625,19 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
               setSelectedAssignee(null);
               setAssigneeOpen(true);
             }}
-            className="w-full bg-zinc-50 border border-zinc-300 rounded px-2.5 py-1.5 text-zinc-900 focus:outline-none focus:border-zinc-600"
+            className="w-full bg-white border border-black rounded px-2.5 py-1.5 text-black focus:outline-none"
             placeholder="Search assignee..."
           />
 
           {assigneeOpen && (
-            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-zinc-200 rounded shadow-xl max-h-36 overflow-y-auto z-30">
+            <div className="absolute left-0 right-0 top-full mt-1 bg-white border-2 border-black rounded shadow-2xl max-h-36 overflow-y-auto z-30">
               <div
                 onClick={() => {
                   setSelectedAssignee(null);
                   setAssigneeSearch('');
                   setAssigneeOpen(false);
                 }}
-                className="px-2.5 py-1.5 hover:bg-zinc-100 cursor-pointer text-zinc-400"
+                className="px-2.5 py-1.5 hover:bg-zinc-100 cursor-pointer text-zinc-500 font-bold border-b border-zinc-200"
               >
                 [ Unassigned ]
               </div>
@@ -649,7 +649,7 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
                     setAssigneeSearch(a.name);
                     setAssigneeOpen(false);
                   }}
-                  className="px-2.5 py-1.5 hover:bg-zinc-100 cursor-pointer text-zinc-800"
+                  className="px-2.5 py-1.5 hover:bg-zinc-100 cursor-pointer text-black"
                 >
                   {a.name}
                 </div>
@@ -660,7 +660,7 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
 
         {/* TOOL AUTOCOMPLETE */}
         <div className="relative">
-          <label className="block text-zinc-600 mb-1">REQUIRED TOOL</label>
+          <label className="block text-black font-bold mb-1">REQUIRED TOOL</label>
           <input
             type="text"
             value={toolSearch}
@@ -670,19 +670,19 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
               setSelectedTool(null);
               setToolOpen(true);
             }}
-            className="w-full bg-zinc-50 border border-zinc-300 rounded px-2.5 py-1.5 text-zinc-900 focus:outline-none focus:border-zinc-600"
+            className="w-full bg-white border border-black rounded px-2.5 py-1.5 text-black focus:outline-none"
             placeholder="Search tool..."
           />
 
           {toolOpen && (
-            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-zinc-200 rounded shadow-xl max-h-36 overflow-y-auto z-30">
+            <div className="absolute left-0 right-0 top-full mt-1 bg-white border-2 border-black rounded shadow-2xl max-h-36 overflow-y-auto z-30">
               <div
                 onClick={() => {
                   setSelectedTool(null);
                   setToolSearch('');
                   setToolOpen(false);
                 }}
-                className="px-2.5 py-1.5 hover:bg-zinc-100 cursor-pointer text-zinc-400"
+                className="px-2.5 py-1.5 hover:bg-zinc-100 cursor-pointer text-zinc-500 font-bold border-b border-zinc-200"
               >
                 [ None ]
               </div>
@@ -694,7 +694,7 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
                     setToolSearch(t.name);
                     setToolOpen(false);
                   }}
-                  className="px-2.5 py-1.5 hover:bg-zinc-100 cursor-pointer text-zinc-800"
+                  className="px-2.5 py-1.5 hover:bg-zinc-100 cursor-pointer text-black"
                 >
                   {t.name}
                 </div>
@@ -707,13 +707,13 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded"
+            className="px-3 py-1.5 bg-white border border-black text-black hover:bg-zinc-100 rounded"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-50 font-semibold rounded"
+            className="px-3 py-1.5 bg-black hover:bg-zinc-800 text-white font-bold rounded"
           >
             Save Entry
           </button>
@@ -774,17 +774,17 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
   };
 
   return (
-    <div className="space-y-3 font-mono text-xs">
+    <div className="space-y-3 font-mono text-xs bg-white">
       {/* ADD ASSIGNEE FORM CARD */}
-      <div className="bg-zinc-100 border border-zinc-200 rounded-lg p-3">
-        <h2 className="text-zinc-800 font-bold mb-2">+ ADD ASSIGNEE</h2>
+      <div className="bg-white border-2 border-black rounded-lg p-3">
+        <h2 className="text-black font-bold mb-2">+ ADD ASSIGNEE</h2>
         <div className="space-y-2">
           <input
             type="text"
             placeholder="Name"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            className="w-full bg-white border border-zinc-300 rounded px-2.5 py-1.5 text-zinc-900 focus:outline-none focus:border-zinc-600"
+            className="w-full bg-white border border-black rounded px-2.5 py-1.5 text-black focus:outline-none"
           />
           <input
             type="text"
@@ -794,17 +794,17 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
               setNewPhone(e.target.value);
               setPhoneError(null);
             }}
-            className="w-full bg-white border border-zinc-300 rounded px-2.5 py-1.5 text-zinc-900 focus:outline-none focus:border-zinc-600"
+            className="w-full bg-white border border-black rounded px-2.5 py-1.5 text-black focus:outline-none"
           />
         </div>
 
-        {phoneError && <p className="text-rose-600 text-[11px] mt-1.5">{phoneError}</p>}
+        {phoneError && <p className="text-black font-bold text-[11px] mt-1.5">⚠️ {phoneError}</p>}
 
         <div className="flex justify-end mt-2.5">
           <button
             onClick={handleAdd}
             disabled={!newName.trim() || !newPhone.trim()}
-            className="px-3 py-1.5 bg-zinc-900 text-zinc-50 hover:bg-zinc-800 disabled:opacity-40 font-semibold rounded transition"
+            className="px-3 py-1.5 bg-black text-white hover:bg-zinc-800 disabled:opacity-40 font-bold rounded transition"
           >
             Add Contact
           </button>
@@ -813,21 +813,21 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
 
       {/* ASSIGNEES LIST */}
       {assignees.length === 0 ? (
-        <p className="text-center py-8 text-zinc-400">No assignees saved.</p>
+        <p className="text-center py-8 text-black font-bold">No assignees saved.</p>
       ) : (
         <div className="space-y-1.5">
           {assignees.map((assignee) => (
             <div
               key={assignee.id}
-              className="bg-white border border-zinc-200 rounded-lg p-2.5 flex items-center justify-between"
+              className="bg-white border border-black rounded-lg p-2.5 flex items-center justify-between"
             >
               <div>
-                <div className="flex items-center gap-1.5 text-zinc-900 font-semibold">
-                  <User className="w-3.5 h-3.5 text-zinc-500" />
+                <div className="flex items-center gap-1.5 text-black font-bold">
+                  <User className="w-3.5 h-3.5 text-black" />
                   {assignee.name}
                 </div>
-                <div className="flex items-center gap-1.5 text-zinc-500 text-[11px] mt-0.5">
-                  <Phone className="w-3 h-3" />
+                <div className="flex items-center gap-1.5 text-black text-[11px] mt-0.5">
+                  <Phone className="w-3 h-3 text-black" />
                   +{assignee.phoneNumber}
                 </div>
               </div>
@@ -835,13 +835,13 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setEditingAssignee(assignee)}
-                  className="p-1 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded"
+                  className="p-1 text-black hover:bg-zinc-100 rounded border border-black"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => setDeletingAssignee(assignee)}
-                  className="p-1 text-rose-600 hover:text-rose-700 hover:bg-zinc-100 rounded"
+                  className="p-1 text-black hover:bg-zinc-100 rounded border border-black"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -854,13 +854,13 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
       {/* DUPLICATE WARNING MODAL */}
       {duplicateWarning && (
         <Modal onClose={() => setDuplicateWarning(null)} title="Duplicate Name">
-          <p className="text-zinc-700 text-xs font-mono mb-4">
+          <p className="text-black text-xs font-mono mb-4">
             An assignee named '{duplicateWarning.name}' already exists. Continue?
           </p>
           <div className="flex justify-end gap-2 font-mono">
             <button
               onClick={() => setDuplicateWarning(null)}
-              className="px-3 py-1.5 bg-zinc-100 text-zinc-700 rounded"
+              className="px-3 py-1.5 bg-white text-black border border-black rounded"
             >
               Cancel
             </button>
@@ -868,7 +868,7 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
               onClick={() =>
                 executeAddAssignee(duplicateWarning.name, duplicateWarning.phone)
               }
-              className="px-3 py-1.5 bg-zinc-900 text-zinc-50 font-semibold rounded"
+              className="px-3 py-1.5 bg-black text-white font-bold rounded"
             >
               Add Anyway
             </button>
@@ -891,19 +891,19 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
       {/* DELETE CONFIRM MODAL */}
       {deletingAssignee && (
         <Modal onClose={() => setDeletingAssignee(null)} title="Confirm Delete">
-          <p className="text-zinc-700 text-xs font-mono mb-4">
+          <p className="text-black text-xs font-mono mb-4">
             Delete contact '{deletingAssignee.name}'?
           </p>
           <div className="flex justify-end gap-2 font-mono">
             <button
               onClick={() => setDeletingAssignee(null)}
-              className="px-3 py-1.5 bg-zinc-100 text-zinc-700 rounded"
+              className="px-3 py-1.5 bg-white text-black border border-black rounded"
             >
               Cancel
             </button>
             <button
               onClick={() => handleDelete(deletingAssignee.id)}
-              className="px-3 py-1.5 bg-rose-600 text-white rounded font-semibold"
+              className="px-3 py-1.5 bg-black text-white rounded font-bold"
             >
               Delete
             </button>
@@ -935,7 +935,7 @@ function EditAssigneeModal({ assignee, onClose, onSave }) {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full bg-zinc-50 border border-zinc-300 rounded px-2.5 py-1.5 text-zinc-900"
+          className="w-full bg-white border border-black rounded px-2.5 py-1.5 text-black"
         />
         <input
           type="text"
@@ -944,17 +944,17 @@ function EditAssigneeModal({ assignee, onClose, onSave }) {
             setPhone(e.target.value);
             setError(null);
           }}
-          className="w-full bg-zinc-50 border border-zinc-300 rounded px-2.5 py-1.5 text-zinc-900"
+          className="w-full bg-white border border-black rounded px-2.5 py-1.5 text-black"
         />
-        {error && <p className="text-rose-600 text-[11px]">{error}</p>}
+        {error && <p className="text-black font-bold text-[11px]">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
-          <button onClick={onClose} className="px-3 py-1.5 bg-zinc-100 text-zinc-700 rounded">
+          <button onClick={onClose} className="px-3 py-1.5 bg-white border border-black text-black rounded">
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={!name.trim() || !phone.trim()}
-            className="px-3 py-1.5 bg-zinc-900 text-zinc-50 font-semibold rounded disabled:opacity-40"
+            className="px-3 py-1.5 bg-black text-white font-bold rounded disabled:opacity-40"
           >
             Save
           </button>
@@ -990,38 +990,38 @@ function ToolsTab({ tools, setTools, setSchedules }) {
   };
 
   return (
-    <div className="space-y-3 font-mono text-xs">
+    <div className="space-y-3 font-mono text-xs bg-white">
       <div className="flex justify-between items-center mb-1">
-        <h2 className="text-sm font-bold text-zinc-800">TOOL INVENTORY</h2>
+        <h2 className="text-sm font-bold text-black">TOOL INVENTORY</h2>
         <button
           onClick={() => {
             setEditingTool(null);
             setShowModal(true);
           }}
-          className="flex items-center gap-1 px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-50 font-bold rounded shadow transition"
+          className="flex items-center gap-1 px-2.5 py-1 bg-black text-white font-bold rounded border border-black hover:bg-zinc-800 transition"
         >
           <Plus className="w-3.5 h-3.5" /> Add Tool
         </button>
       </div>
 
       {tools.length === 0 ? (
-        <div className="text-center py-12 bg-zinc-100/50 rounded-lg border border-dashed border-zinc-300">
-          <p className="text-zinc-500">No tools registered.</p>
+        <div className="text-center py-12 bg-white rounded border-2 border-dashed border-black">
+          <p className="text-black font-bold">No tools registered.</p>
         </div>
       ) : (
         <div className="space-y-1.5">
           {tools.map((tool) => (
             <div
               key={tool.id}
-              className="bg-white border border-zinc-200 rounded-lg p-3 flex items-center justify-between"
+              className="bg-white border border-black rounded-lg p-3 flex items-center justify-between"
             >
               <div>
-                <h3 className="text-zinc-900 font-semibold flex items-center gap-1.5">
-                  <Wrench className="w-3.5 h-3.5 text-zinc-500" />
+                <h3 className="text-black font-bold flex items-center gap-1.5">
+                  <Wrench className="w-3.5 h-3.5 text-black" />
                   {tool.name}
                 </h3>
                 {tool.description && (
-                  <p className="text-zinc-500 text-[11px] mt-0.5">{tool.description}</p>
+                  <p className="text-black text-[11px] mt-0.5">{tool.description}</p>
                 )}
               </div>
 
@@ -1031,13 +1031,13 @@ function ToolsTab({ tools, setTools, setSchedules }) {
                     setEditingTool(tool);
                     setShowModal(true);
                   }}
-                  className="p-1 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded"
+                  className="p-1 text-black hover:bg-zinc-100 rounded border border-black"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleDeleteTool(tool.id)}
-                  className="p-1 text-rose-600 hover:text-rose-700 hover:bg-zinc-100 rounded"
+                  className="p-1 text-black hover:bg-zinc-100 rounded border border-black"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -1072,35 +1072,35 @@ function AddEditToolModal({ existingTool, onClose, onSave }) {
         className="space-y-2.5 font-mono text-xs"
       >
         <div>
-          <label className="block text-zinc-600 mb-1">TOOL NAME</label>
+          <label className="block text-black font-bold mb-1">TOOL NAME</label>
           <input
             type="text"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-zinc-50 border border-zinc-300 rounded px-2.5 py-1.5 text-zinc-900"
+            className="w-full bg-white border border-black rounded px-2.5 py-1.5 text-black"
           />
         </div>
         <div>
-          <label className="block text-zinc-600 mb-1">DESCRIPTION (OPTIONAL)</label>
+          <label className="block text-black font-bold mb-1">DESCRIPTION (OPTIONAL)</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full bg-zinc-50 border border-zinc-300 rounded px-2.5 py-1.5 text-zinc-900 h-16"
+            className="w-full bg-white border border-black rounded px-2.5 py-1.5 text-black h-16"
           />
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 bg-zinc-100 text-zinc-700 rounded"
+            className="px-3 py-1.5 bg-white border border-black text-black rounded"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!name.trim()}
-            className="px-3 py-1.5 bg-zinc-900 text-zinc-50 font-semibold rounded disabled:opacity-40"
+            className="px-3 py-1.5 bg-black text-white font-bold rounded disabled:opacity-40"
           >
             Save
           </button>
@@ -1152,14 +1152,14 @@ function TemplatesTab({
   }, [templateDraft]);
 
   return (
-    <div className="space-y-3 font-mono text-xs">
+    <div className="space-y-3 font-mono text-xs bg-white">
       {/* EDITOR CARD */}
-      <div className="bg-zinc-100 border border-zinc-200 rounded-lg p-3 space-y-2.5">
+      <div className="bg-white border-2 border-black rounded-lg p-3 space-y-2.5">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-zinc-800">MESSAGE TEMPLATE</h2>
+          <h2 className="font-bold text-black">MESSAGE TEMPLATE</h2>
           {hasUnsaved && (
-            <span className="text-[11px] text-amber-600 font-semibold flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3" /> UNSAVED
+            <span className="text-[11px] text-black font-bold flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3 text-black" /> UNSAVED
             </span>
           )}
         </div>
@@ -1170,7 +1170,7 @@ function TemplatesTab({
             <button
               key={tag}
               onClick={() => insertTag(tag)}
-              className="text-[11px] bg-white hover:bg-zinc-200 text-zinc-800 px-2 py-0.5 rounded border border-zinc-300 transition"
+              className="text-[11px] bg-white text-black px-2 py-0.5 rounded border border-black hover:bg-zinc-100 transition font-bold"
             >
               + {tag}
             </button>
@@ -1181,7 +1181,7 @@ function TemplatesTab({
           value={templateDraft}
           onChange={(e) => handleTextChange(e.target.value)}
           rows={5}
-          className="w-full bg-white border border-zinc-300 rounded p-2.5 text-xs text-zinc-900 focus:outline-none focus:border-zinc-600"
+          className="w-full bg-white border border-black rounded p-2.5 text-xs text-black focus:outline-none"
           placeholder="Enter custom template..."
         />
 
@@ -1189,7 +1189,7 @@ function TemplatesTab({
           <button
             onClick={handleSave}
             disabled={!hasUnsaved}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 disabled:opacity-40 text-zinc-50 font-bold rounded transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-black text-white hover:bg-zinc-800 disabled:opacity-40 font-bold rounded transition border border-black"
           >
             <Check className="w-3.5 h-3.5" /> Save Template
           </button>
@@ -1197,11 +1197,11 @@ function TemplatesTab({
       </div>
 
       {/* LIVE PREVIEW CARD */}
-      <div className="bg-zinc-100/60 border border-zinc-200 rounded-lg p-3 space-y-1.5">
-        <h3 className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">
+      <div className="bg-white border-2 border-black rounded-lg p-3 space-y-1.5">
+        <h3 className="text-[10px] uppercase font-bold tracking-wider text-black">
           PREVIEW DRAFT
         </h3>
-        <div className="bg-emerald-50 border border-emerald-200 rounded p-2.5 text-xs text-emerald-950 whitespace-pre-wrap leading-relaxed font-mono">
+        <div className="bg-white border border-black rounded p-2.5 text-xs text-black whitespace-pre-wrap leading-relaxed font-mono">
           {previewText}
         </div>
       </div>
@@ -1212,11 +1212,11 @@ function TemplatesTab({
 // General Modal Shell Component
 function Modal({ title, children, onClose }) {
   return (
-    <div className="fixed inset-0 bg-zinc-950/40 backdrop-blur-xs flex items-center justify-center p-3 z-50">
-      <div className="bg-white border border-zinc-200 rounded-lg max-w-xs w-full p-4 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 z-50">
+      <div className="bg-white border-2 border-black rounded-lg max-w-xs w-full p-4 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-xs font-mono font-bold text-zinc-900 uppercase tracking-wider">{title}</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">
+          <h2 className="text-xs font-mono font-bold text-black uppercase tracking-wider">{title}</h2>
+          <button onClick={onClose} className="text-black hover:bg-zinc-100 p-0.5 rounded border border-black">
             <X className="w-4 h-4" />
           </button>
         </div>

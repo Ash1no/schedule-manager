@@ -1,450 +1,1253 @@
-import React, { useState } from 'react';
-import { useScheduleStore } from './useScheduleStore';
-import { formatScheduleMessage, generateWhatsAppLink } from './utils/whatsapp';
-import { 
-  Calendar as CalendarIcon, 
-  Users, 
-  Wrench, 
-  FileText, 
-  Plus, 
-  Lock, 
-  Unlock, 
-  ChevronLeft, 
-  ChevronRight, 
-  Share2, 
-  Copy, 
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Calendar,
+  User,
+  Wrench,
+  FileText,
+  Plus,
   Trash2,
+  Edit2,
+  Share2,
+  Lock,
+  Unlock,
+  ChevronLeft,
+  ChevronRight,
+  Phone,
+  AlertTriangle,
+  Check,
   X
 } from 'lucide-react';
 
-export default function App() {
-  const {
-    selectedDate,
-    setSelectedDate,
-    isEditMode,
-    toggleEditMode,
-    savedTemplate,
-    saveTemplate,
-    displayedScheduleItems,
-    assignees,
-    tools,
-    addScheduleItem,
-    deleteScheduleItem,
-    addAssignee,
-    addTool,
-  } = useScheduleStore();
+// ============================================================================
+// HELPER FUNCTIONS & INITIAL DATA
+// ============================================================================
 
-  const [activeTab, setActiveTab] = useState<'schedule' | 'assignees' | 'tools' | 'templates'>('schedule');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+const DEFAULT_DATE = '2026-08-08';
 
-  // Form states
-  const [address, setAddress] = useState('');
-  const [selectedAssigneeId, setSelectedAssigneeId] = useState<number | ''>('');
-  const [selectedToolId, setSelectedToolId] = useState<number | ''>('');
+const INITIAL_SCHEDULES = [
+  { id: 1, date: '2026-08-08', address: '123 Tech Park, Cyberjaya', assigneeId: 1, toolId: 1 },
+  { id: 2, date: '2026-08-08', address: '456 Innovation Way, JB', assigneeId: 2, toolId: null },
+  { id: 3, date: '2026-08-08', address: '789 Main HQ', assigneeId: null, toolId: 2 }
+];
 
-  const [newAssigneeName, setNewAssigneeName] = useState('');
-  const [newAssigneePhone, setNewAssigneePhone] = useState('');
-  const [newToolName, setNewToolName] = useState('');
-  const [newToolDesc, setNewToolDesc] = useState('');
-  const [templateText, setTemplateText] = useState(savedTemplate);
+const INITIAL_ASSIGNEES = [
+  { id: 1, name: 'Alex', phoneNumber: '60123456789' },
+  { id: 2, name: 'Jordan', phoneNumber: '60129876543' },
+  { id: 3, name: 'Taylor', phoneNumber: '601111223344' }
+];
 
-  // Helper to get week strip dates
-  const getWeekDates = (baseDateStr: string) => {
-    const curr = new Date(baseDateStr);
-    const day = curr.getDay();
-    const diffToMon = curr.getDate() - day + (day === 0 ? -6 : 1);
-    
-    const monday = new Date(curr.setDate(diffToMon));
-    const week = [];
-    
-    for (let i = 0; i < 7; i++) {
-      const next = new Date(monday);
-      next.setDate(monday.getDate() + i);
-      week.push(next);
+const INITIAL_TOOLS = [
+  { id: 1, name: 'Drill Kit', description: 'Cordless power drill with bits' },
+  { id: 2, name: 'Ladder', description: '6ft aluminum step ladder' },
+  { id: 3, name: 'Multimeter', description: 'Digital voltage tester' }
+];
+
+const DEFAULT_TEMPLATE =
+  "Hi {assignee}, here is your schedule:\n\n📅 Date: {date}\n📍 Address: {address}\n🛠 Tool: {tool}";
+
+function sanitizePhoneNumber(raw) {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('601')) return digits;
+  if (digits.startsWith('01')) return '60' + digits.slice(1);
+  if (digits.startsWith('1')) return '60' + digits;
+  return digits;
+}
+
+function isValidPhoneNumber(sanitized) {
+  return sanitized.length >= 10 && sanitized.length <= 15;
+}
+
+// Date handling helpers
+function parseISO(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function formatISO(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
+}
+
+// ============================================================================
+// MAIN APPLICATION CONTAINER
+// ============================================================================
+
+export default function ScheduleManagerApp() {
+  // Persistence state
+  const [schedules, setSchedules] = useState(() => {
+    const saved = localStorage.getItem('sm_schedules');
+    return saved ? JSON.parse(saved) : INITIAL_SCHEDULES;
+  });
+
+  const [assignees, setAssignees] = useState(() => {
+    const saved = localStorage.getItem('sm_assignees');
+    return saved ? JSON.parse(saved) : INITIAL_ASSIGNEES;
+  });
+
+  const [tools, setTools] = useState(() => {
+    const saved = localStorage.getItem('sm_tools');
+    return saved ? JSON.parse(saved) : INITIAL_TOOLS;
+  });
+
+  const [selectedDate, setSelectedDate] = useState(() => {
+    return localStorage.getItem('sm_selected_date') || DEFAULT_DATE;
+  });
+
+  const [savedTemplate, setSavedTemplate] = useState(() => {
+    return localStorage.getItem('sm_template') || DEFAULT_TEMPLATE;
+  });
+
+  // UI state
+  const [activeTab, setActiveTab] = useState(0); // 0: Schedule, 1: Assignees, 2: Tools, 3: Template
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  // Template change tracking
+  const [templateDraft, setTemplateDraft] = useState(savedTemplate);
+  const [hasUnsavedTemplateChanges, setHasUnsavedTemplateChanges] = useState(false);
+  const [pendingTab, setPendingTab] = useState(null);
+
+  // Sync state to local storage
+  useEffect(() => { localStorage.setItem('sm_schedules', JSON.stringify(schedules)); }, [schedules]);
+  useEffect(() => { localStorage.setItem('sm_assignees', JSON.stringify(assignees)); }, [assignees]);
+  useEffect(() => { localStorage.setItem('sm_tools', JSON.stringify(tools)); }, [tools]);
+  useEffect(() => { localStorage.setItem('sm_selected_date', selectedDate); }, [selectedDate]);
+  useEffect(() => { localStorage.setItem('sm_template', savedTemplate); }, [savedTemplate]);
+
+  // Tab switch guard for unsaved template changes
+  const handleTabSwitch = (targetTab) => {
+    if (activeTab === 3 && hasUnsavedTemplateChanges) {
+      setPendingTab(targetTab);
+    } else {
+      setActiveTab(targetTab);
     }
-    return week;
-  };
-
-  const currentWeekDays = getWeekDates(selectedDate);
-  const formatDateStr = (d: Date) => d.toISOString().split('T')[0];
-
-  const handlePrevWeek = () => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() - 7);
-    setSelectedDate(formatDateStr(d));
-  };
-
-  const handleNextWeek = () => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + 7);
-    setSelectedDate(formatDateStr(d));
-  };
-
-  const handleAddSchedule = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!address.trim()) return;
-
-    addScheduleItem({
-      date: selectedDate,
-      address,
-      assigneeId: selectedAssigneeId !== '' ? Number(selectedAssigneeId) : null,
-      toolId: selectedToolId !== '' ? Number(selectedToolId) : null,
-    });
-
-    setAddress('');
-    setSelectedAssigneeId('');
-    setSelectedToolId('');
-    setIsAddModalOpen(false);
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-md mx-auto bg-slate-50 text-zinc-900 font-sans select-none border-x border-zinc-200">
-      
-      {/* Notebook Header */}
-      <header className="flex justify-between items-center px-5 py-4 bg-white border-b border-zinc-200">
-        <h1 className="text-xl font-bold tracking-tight text-zinc-900">Schedule Manager</h1>
-        <button 
-          onClick={toggleEditMode}
-          className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 border border-zinc-300 rounded-lg hover:bg-zinc-100 transition text-zinc-700 bg-white shadow-sm"
-        >
-          <span>{isEditMode ? 'Edit Mode' : 'View Mode'}</span>
-          {isEditMode ? <Unlock className="w-3.5 h-3.5 text-zinc-900" /> : <Lock className="w-3.5 h-3.5 text-zinc-500" />}
-        </button>
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
+      {/* TOP HEADER / BAR */}
+      <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-20">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-indigo-400" /> Schedule Manager
+          </h1>
+
+          {activeTab === 0 && (
+            <div className="flex items-center gap-3">
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${isEditMode ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-700 text-slate-400'}`}>
+                {isEditMode ? 'Edit Mode' : 'View Mode'}
+              </span>
+              <button
+                onClick={() => setIsEditMode(!isEditMode)}
+                className={`p-2 rounded-lg border transition ${
+                  isEditMode
+                    ? 'bg-indigo-600 border-indigo-500 text-white'
+                    : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'
+                }`}
+                title="Toggle Edit Mode"
+              >
+                {isEditMode ? <Edit2 className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* BOTTOM NAVIGATION TABS */}
+        <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-slate-700/50">
+          <TabButton icon={<Calendar />} label="Schedules" active={activeTab === 0} onClick={() => handleTabSwitch(0)} />
+          <TabButton icon={<User />} label="Assignees" active={activeTab === 1} onClick={() => handleTabSwitch(1)} />
+          <TabButton icon={<Wrench />} label="Tools" active={activeTab === 2} onClick={() => handleTabSwitch(2)} />
+          <TabButton
+            icon={<FileText />}
+            label="Template"
+            active={activeTab === 3}
+            hasBadge={hasUnsavedTemplateChanges}
+            onClick={() => handleTabSwitch(3)}
+          />
+        </div>
       </header>
 
-      {/* Body Area */}
-      <div className="flex-1 overflow-y-auto relative pb-24">
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 max-w-4xl w-full mx-auto p-4">
+        {activeTab === 0 && (
+          <ScheduleTab
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            schedules={schedules}
+            setSchedules={setSchedules}
+            assignees={assignees}
+            tools={tools}
+            savedTemplate={savedTemplate}
+            isEditMode={isEditMode}
+          />
+        )}
 
-        {/* TAB 1: SCHEDULE */}
-        {activeTab === 'schedule' && (
-          <div className="flex flex-col h-full">
-            
-            {/* Week Carousel */}
-            <div className="bg-white pb-3 pt-3 px-2 border-b border-zinc-200">
-              <div className="flex justify-between items-center px-4 mb-3">
-                <button onClick={handlePrevWeek} className="p-1 text-zinc-600 hover:bg-zinc-100 rounded-full">
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <span className="font-semibold text-zinc-800 text-sm">
-                  {currentWeekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {currentWeekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </span>
-                <button onClick={handleNextWeek} className="p-1 text-zinc-600 hover:bg-zinc-100 rounded-full">
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
+        {activeTab === 1 && (
+          <AssigneesTab
+            assignees={assignees}
+            setAssignees={setAssignees}
+            schedules={schedules}
+            setSchedules={setSchedules}
+          />
+        )}
 
-              {/* Day Pills Bar */}
-              <div className="grid grid-cols-7 gap-1.5 px-2">
-                {currentWeekDays.map((d) => {
-                  const dateStr = formatDateStr(d);
-                  const isSelected = dateStr === selectedDate;
-                  const dayName = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-                  const dayNum = d.getDate();
+        {activeTab === 2 && (
+          <ToolsTab
+            tools={tools}
+            setTools={setTools}
+            schedules={schedules}
+            setSchedules={setSchedules}
+          />
+        )}
 
-                  return (
-                    <button
-                      key={dateStr}
-                      onClick={() => setSelectedDate(dateStr)}
-                      className={`flex flex-col items-center py-2.5 rounded-2xl transition ${
-                        isSelected 
-                          ? 'bg-zinc-800 text-white font-bold shadow-sm' 
-                          : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 border border-zinc-200/50'
-                      }`}
-                    >
-                      <span className="text-[10px] tracking-wider">{dayName}</span>
-                      <span className="text-sm mt-0.5">{dayNum}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+        {activeTab === 3 && (
+          <TemplatesTab
+            savedTemplate={savedTemplate}
+            setSavedTemplate={setSavedTemplate}
+            templateDraft={templateDraft}
+            setTemplateDraft={setTemplateDraft}
+            hasUnsaved={hasUnsavedTemplateChanges}
+            setHasUnsaved={setHasUnsavedTemplateChanges}
+          />
+        )}
+      </main>
 
-            {/* Content List */}
-            <div className="flex-1 p-4">
-              {displayedScheduleItems.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-zinc-400 py-24">
-                  <p className="text-sm font-medium text-zinc-500">No schedules for this day.</p>
-                  <p className="text-xs text-zinc-400 mt-1">Tap + to add one.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {displayedScheduleItems.map((item) => {
-                    const assignee = assignees.find(a => a.id === item.assigneeId);
-                    const tool = tools.find(t => t.id === item.toolId);
-                    const formattedMsg = formatScheduleMessage(savedTemplate, item, assignees, tools);
-                    const waUrl = generateWhatsAppLink(formattedMsg, assignee?.phoneNumber);
-
-                    return (
-                      <div key={item.id} className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm space-y-2">
-                        <p className="font-bold text-zinc-900">{item.address}</p>
-                        <div className="text-xs text-zinc-600 space-y-1">
-                          <p>👤 <span className="font-medium text-zinc-800">{assignee ? assignee.name : 'Unassigned'}</span></p>
-                          <p>🛠️ <span className="font-medium text-zinc-800">{tool ? tool.name : 'No Tool'}</span></p>
-                        </div>
-
-                        <div className="flex items-center gap-2 pt-2 border-t border-zinc-100">
-                          <a
-                            href={waUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 flex items-center justify-center gap-1.5 bg-zinc-900 text-white text-xs font-semibold py-2 rounded-xl hover:bg-zinc-800 transition"
-                          >
-                            <Share2 className="w-3.5 h-3.5" /> WhatsApp
-                          </a>
-                          <button
-                            onClick={() => navigator.clipboard.writeText(formattedMsg)}
-                            className="p-2 text-zinc-600 hover:bg-zinc-100 rounded-xl border border-zinc-200"
-                          >
-                            <Copy className="w-4 h-4" />
-                          </button>
-                          {isEditMode && (
-                            <button
-                              onClick={() => deleteScheduleItem(item.id)}
-                              className="p-2 text-zinc-500 hover:text-red-600 hover:bg-red-50 rounded-xl border border-zinc-200"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Floating Action Button */}
+      {/* UNSAVED CHANGES GUARD MODAL */}
+      {pendingTab !== null && (
+        <Modal onClose={() => setPendingTab(null)} title="Unsaved Changes">
+          <p className="text-slate-300 text-sm mb-6">
+            You have unsaved template edits. Are you sure you want to leave? Your changes will be lost.
+          </p>
+          <div className="flex justify-end gap-3">
             <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="fixed bottom-20 right-6 w-14 h-14 bg-zinc-200 text-zinc-900 border border-zinc-300 rounded-2xl shadow-md flex items-center justify-center hover:bg-zinc-300 transition active:scale-95"
+              onClick={() => setPendingTab(null)}
+              className="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200"
             >
-              <Plus className="w-7 h-7" />
+              Keep Editing
+            </button>
+            <button
+              onClick={() => {
+                setTemplateDraft(savedTemplate);
+                setHasUnsavedTemplateChanges(false);
+                setActiveTab(pendingTab);
+                setPendingTab(null);
+              }}
+              className="px-4 py-2 text-sm bg-rose-600 hover:bg-rose-500 rounded-lg text-white font-medium"
+            >
+              Discard & Leave
             </button>
           </div>
-        )}
+        </Modal>
+      )}
+    </div>
+  );
+}
 
-        {/* TAB 2: ASSIGNEES */}
-        {activeTab === 'assignees' && (
-          <div className="p-4 space-y-4">
-            <h2 className="text-lg font-bold text-zinc-900">Assignees</h2>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              if (!newAssigneeName.trim()) return;
-              addAssignee({ name: newAssigneeName, phoneNumber: newAssigneePhone });
-              setNewAssigneeName('');
-              setNewAssigneePhone('');
-            }} className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm space-y-3">
-              <input
-                type="text"
-                placeholder="Name"
-                value={newAssigneeName}
-                onChange={e => setNewAssigneeName(e.target.value)}
-                className="w-full p-2.5 border border-zinc-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-zinc-800"
-                required
+// Navigation Tab Component
+function TabButton({ icon, label, active, onClick, hasBadge }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition ${
+        active
+          ? 'border-indigo-500 text-indigo-400 bg-slate-800/50'
+          : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'
+      }`}
+    >
+      {React.cloneElement(icon, { className: 'w-4 h-4' })}
+      <span>{label}</span>
+      {hasBadge && <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
+    </button>
+  );
+}
+
+// ============================================================================
+// TAB 1: SCHEDULE TAB & WEEK HEADER
+// ============================================================================
+
+function ScheduleTab({
+  selectedDate,
+  setSelectedDate,
+  schedules,
+  setSchedules,
+  assignees,
+  tools,
+  savedTemplate,
+  isEditMode
+}) {
+  const [showAddEditModal, setShowAddEditModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+
+  // Filtered schedules for selected date
+  const displayedItems = useMemo(() => {
+    return schedules.filter((s) => s.date === selectedDate);
+  }, [schedules, selectedDate]);
+
+  const handleSaveSchedule = (item) => {
+    if (item.id) {
+      setSchedules((prev) => prev.map((s) => (s.id === item.id ? item : s)));
+    } else {
+      const nextId = schedules.length ? Math.max(...schedules.map((s) => s.id)) + 1 : 1;
+      setSchedules((prev) => [...prev, { ...item, id: nextId }]);
+    }
+    setShowAddEditModal(false);
+  };
+
+  const handleDeleteSchedule = (id) => {
+    setSchedules((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* 7-DAY WEEK STRIP HEADER */}
+      <WeekHeaderStrip
+        selectedDate={selectedDate}
+        schedules={schedules}
+        onDateSelected={setSelectedDate}
+      />
+
+      {/* SCHEDULE CARDS LIST */}
+      {displayedItems.length === 0 ? (
+        <div className="text-center py-16 bg-slate-800/40 rounded-xl border border-dashed border-slate-700">
+          <p className="text-slate-400 text-base">No schedules for this day.</p>
+          <p className="text-slate-500 text-xs mt-1">Tap + button to add one.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {displayedItems.map((item) => {
+            const assignee = assignees.find((a) => a.id === item.assigneeId);
+            const tool = tools.find((t) => t.id === item.toolId);
+
+            return (
+              <ScheduleCard
+                key={item.id}
+                item={item}
+                assignee={assignee}
+                tool={tool}
+                savedTemplate={savedTemplate}
+                isEditMode={isEditMode}
+                onEdit={() => {
+                  setEditingItem(item);
+                  setShowAddEditModal(true);
+                }}
+                onDelete={() => handleDeleteSchedule(item.id)}
               />
-              <input
-                type="tel"
-                placeholder="Phone Number"
-                value={newAssigneePhone}
-                onChange={e => setNewAssigneePhone(e.target.value)}
-                className="w-full p-2.5 border border-zinc-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-zinc-800"
-              />
-              <button type="submit" className="w-full bg-zinc-900 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-zinc-800 transition">
-                Add Person
-              </button>
-            </form>
-
-            <div className="bg-white rounded-2xl border border-zinc-200 divide-y divide-zinc-100 shadow-sm overflow-hidden">
-              {assignees.map(a => (
-                <div key={a.id} className="p-3.5 text-sm">
-                  <p className="font-bold text-zinc-900">{a.name}</p>
-                  <p className="text-xs text-zinc-500">{a.phoneNumber || 'No phone number'}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: TOOLS */}
-        {activeTab === 'tools' && (
-          <div className="p-4 space-y-4">
-            <h2 className="text-lg font-bold text-zinc-900">Tools</h2>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              if (!newToolName.trim()) return;
-              addTool({ name: newToolName, description: newToolDesc });
-              setNewToolName('');
-              setNewToolDesc('');
-            }} className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm space-y-3">
-              <input
-                type="text"
-                placeholder="Tool Name"
-                value={newToolName}
-                onChange={e => setNewToolName(e.target.value)}
-                className="w-full p-2.5 border border-zinc-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-zinc-800"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Description"
-                value={newToolDesc}
-                onChange={e => setNewToolDesc(e.target.value)}
-                className="w-full p-2.5 border border-zinc-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-zinc-800"
-              />
-              <button type="submit" className="w-full bg-zinc-900 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-zinc-800 transition">
-                Add Tool
-              </button>
-            </form>
-
-            <div className="bg-white rounded-2xl border border-zinc-200 divide-y divide-zinc-100 shadow-sm overflow-hidden">
-              {tools.map(t => (
-                <div key={t.id} className="p-3.5 text-sm">
-                  <p className="font-bold text-zinc-900">{t.name}</p>
-                  {t.description && <p className="text-xs text-zinc-500">{t.description}</p>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: TEMPLATES */}
-        {activeTab === 'templates' && (
-          <div className="p-4 space-y-4">
-            <h2 className="text-lg font-bold text-zinc-900">Templates</h2>
-            <div className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm space-y-3">
-              <p className="text-xs text-zinc-500">Available tags: {'{date}'}, {'{address}'}, {'{assignee}'}, {'{tool}'}</p>
-              <textarea
-                rows={5}
-                value={templateText}
-                onChange={e => setTemplateText(e.target.value)}
-                className="w-full p-3 border border-zinc-300 rounded-xl font-mono text-sm focus:outline-none focus:ring-1 focus:ring-zinc-800"
-              />
-              <button
-                onClick={() => saveTemplate(templateText)}
-                className="w-full bg-zinc-900 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-zinc-800 transition"
-              >
-                Save Template
-              </button>
-            </div>
-          </div>
-        )}
-
-      </div>
-
-      {/* Modal Dialog */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-xs z-50 flex items-end justify-center">
-          <div className="bg-white w-full max-w-md rounded-t-3xl p-6 space-y-4 border-t border-zinc-200">
-            <div className="flex justify-between items-center border-b border-zinc-100 pb-3">
-              <h3 className="font-bold text-lg text-zinc-900">Add New Schedule</h3>
-              <button onClick={() => setIsAddModalOpen(false)} className="p-1 text-zinc-400 hover:text-zinc-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddSchedule} className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-zinc-500">Address / Location</label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={e => setAddress(e.target.value)}
-                  placeholder="Enter location address"
-                  className="w-full p-2.5 border border-zinc-300 rounded-xl text-sm mt-1 focus:outline-none focus:ring-1 focus:ring-zinc-800"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-zinc-500">Assignee</label>
-                <select
-                  value={selectedAssigneeId}
-                  onChange={e => setSelectedAssigneeId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full p-2.5 border border-zinc-300 rounded-xl text-sm mt-1 bg-white focus:outline-none focus:ring-1 focus:ring-zinc-800"
-                >
-                  <option value="">Select Assignee...</option>
-                  {assignees.map(a => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-zinc-500">Tool</label>
-                <select
-                  value={selectedToolId}
-                  onChange={e => setSelectedToolId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full p-2.5 border border-zinc-300 rounded-xl text-sm mt-1 bg-white focus:outline-none focus:ring-1 focus:ring-zinc-800"
-                >
-                  <option value="">Select Tool...</option>
-                  {tools.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-zinc-900 text-white py-3 rounded-xl font-bold mt-2 hover:bg-zinc-800 transition"
-              >
-                Add Schedule
-              </button>
-            </form>
-          </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Monochrome Bottom Navigation Bar */}
-      <nav className="flex justify-around items-center bg-zinc-100 border-t border-zinc-200 py-2 fixed bottom-0 max-w-md w-full z-10">
+      {/* FLOATING ACTION BUTTON */}
+      <button
+        onClick={() => {
+          setEditingItem(null);
+          setShowAddEditModal(true);
+        }}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-900/40 transition transform active:scale-95 z-10"
+        title="Add Schedule"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
+
+      {/* ADD/EDIT MODAL */}
+      {showAddEditModal && (
+        <AddEditScheduleModal
+          selectedDate={selectedDate}
+          existingItem={editingItem}
+          assignees={assignees}
+          tools={tools}
+          onClose={() => setShowAddEditModal(false)}
+          onSave={handleSaveSchedule}
+        />
+      )}
+    </div>
+  );
+}
+
+// 7-Day Horizontal Week Selector Component
+function WeekHeaderStrip({ selectedDate, schedules, onDateSelected }) {
+  const currentDate = useMemo(() => parseISO(selectedDate), [selectedDate]);
+  const monday = useMemo(() => getMonday(currentDate), [currentDate]);
+
+  const sunday = useMemo(() => {
+    const sun = new Date(monday);
+    sun.setDate(sun.getDate() + 6);
+    return sun;
+  }, [monday]);
+
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  }, [monday]);
+
+  const shiftWeek = (weeks) => {
+    const nextDate = new Date(monday);
+    nextDate.setDate(nextDate.getDate() + weeks * 7);
+    onDateSelected(formatISO(nextDate));
+  };
+
+  const rangeText = `${monday.toLocaleDateString('en-US', {
+    month: 'short',
+    day: '2-digit'
+  })} - ${sunday.toLocaleDateString('en-US', {
+    month: 'short',
+    day: '2-digit'
+  })}, ${sunday.getFullYear()}`;
+
+  return (
+    <div className="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-sm">
+      {/* Week Title Bar */}
+      <div className="flex items-center justify-between mb-3">
         <button
-          onClick={() => setActiveTab('schedule')}
-          className={`flex flex-col items-center gap-1 text-[11px] font-medium transition ${
-            activeTab === 'schedule' ? 'text-zinc-900 font-bold' : 'text-zinc-500'
-          }`}
+          onClick={() => shiftWeek(-1)}
+          className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700"
         >
-          <div className={`p-1 px-4 rounded-full ${activeTab === 'schedule' ? 'bg-zinc-200' : ''}`}>
-            <CalendarIcon className="w-5 h-5" />
-          </div>
-          Schedule
+          <ChevronLeft className="w-5 h-5" />
         </button>
 
-        <button
-          onClick={() => setActiveTab('assignees')}
-          className={`flex flex-col items-center gap-1 text-[11px] font-medium transition ${
-            activeTab === 'assignees' ? 'text-zinc-900 font-bold' : 'text-zinc-500'
-          }`}
-        >
-          <div className={`p-1 px-4 rounded-full ${activeTab === 'assignees' ? 'bg-zinc-200' : ''}`}>
-            <Users className="w-5 h-5" />
-          </div>
-          Assignees
-        </button>
+        <div className="relative group flex items-center gap-2 cursor-pointer">
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => e.target.value && onDateSelected(e.target.value)}
+            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+          />
+          <span className="font-semibold text-sm text-slate-200 group-hover:text-indigo-400 transition">
+            {rangeText}
+          </span>
+        </div>
 
         <button
-          onClick={() => setActiveTab('tools')}
-          className={`flex flex-col items-center gap-1 text-[11px] font-medium transition ${
-            activeTab === 'tools' ? 'text-zinc-900 font-bold' : 'text-zinc-500'
-          }`}
+          onClick={() => shiftWeek(1)}
+          className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700"
         >
-          <div className={`p-1 px-4 rounded-full ${activeTab === 'tools' ? 'bg-zinc-200' : ''}`}>
-            <Wrench className="w-5 h-5" />
-          </div>
-          Tools
+          <ChevronRight className="w-5 h-5" />
         </button>
+      </div>
 
+      {/* 7 Day Pills */}
+      <div className="grid grid-cols-7 gap-1">
+        {weekDays.map((dayDate) => {
+          const iso = formatISO(dayDate);
+          const isSelected = iso === selectedDate;
+          const dayName = dayDate
+            .toLocaleDateString('en-US', { weekday: 'short' })
+            .toUpperCase();
+          const dayNum = dayDate.getDate();
+
+          // Count schedules for dots
+          const eventCount = schedules.filter((s) => s.date === iso).length;
+          const maxDots = Math.min(eventCount, 9);
+          const topRowDots = Math.min(maxDots, 5);
+          const bottomRowDots = Math.max(0, maxDots - 5);
+
+          return (
+            <button
+              key={iso}
+              onClick={() => onDateSelected(iso)}
+              className={`flex flex-col items-center py-2 px-1 rounded-lg transition ${
+                isSelected
+                  ? 'bg-indigo-600 text-white shadow'
+                  : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300'
+              }`}
+            >
+              <span className="text-[10px] font-bold tracking-wider opacity-80">{dayName}</span>
+              <span className="text-sm font-semibold my-0.5">{dayNum}</span>
+
+              {/* Event count indicator dots */}
+              <div className="h-2.5 flex flex-col justify-center gap-0.5">
+                {topRowDots > 0 && (
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: topRowDots }).map((_, i) => (
+                      <span
+                        key={i}
+                        className={`w-1 h-1 rounded-full ${
+                          isSelected ? 'bg-white' : 'bg-slate-400'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+                {bottomRowDots > 0 && (
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: bottomRowDots }).map((_, i) => (
+                      <span
+                        key={i}
+                        className={`w-1 h-1 rounded-full ${
+                          isSelected ? 'bg-white' : 'bg-slate-400'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Individual Schedule Card Component
+function ScheduleCard({ item, assignee, tool, savedTemplate, isEditMode, onEdit, onDelete }) {
+  const assigneeName = assignee ? assignee.name : 'Unassigned';
+  const toolName = tool ? tool.name : 'None';
+
+  const handleWhatsAppShare = () => {
+    const rawTemplate = savedTemplate.trim() || DEFAULT_TEMPLATE;
+    const formattedMessage = rawTemplate
+      .replace(/{assignee}/g, assigneeName)
+      .replace(/{name}/g, assigneeName)
+      .replace(/{date}/g, item.date)
+      .replace(/{address}/g, item.address)
+      .replace(/{location}/g, item.address)
+      .replace(/{tool}/g, toolName);
+
+    const cleanPhone = assignee ? sanitizePhoneNumber(assignee.phoneNumber) : '';
+    const encodedText = encodeURIComponent(formattedMessage);
+
+    const url = cleanPhone
+      ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
+      : `https://api.whatsapp.com/send?text=${encodedText}`;
+
+    window.open(url, '_blank');
+  };
+
+  return (
+    <div className="bg-slate-800/90 border border-slate-700/80 rounded-xl p-4 shadow-sm hover:border-slate-600 transition">
+      <div className="flex justify-between items-start gap-2">
+        <h3 className="font-semibold text-slate-100 text-base leading-snug">{item.address}</h3>
+
+        {isEditMode ? (
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={onEdit}
+              className="p-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-slate-700 rounded-lg"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-slate-700 rounded-lg"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleWhatsAppShare}
+            className="p-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/50 rounded-lg transition"
+            title="Share via WhatsApp"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-2 mt-3">
+        <span className="inline-flex items-center gap-1.5 text-xs bg-slate-700/60 text-slate-300 px-2.5 py-1 rounded-full border border-slate-600/50">
+          <User className="w-3 h-3 text-indigo-400" />
+          {assigneeName}
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-xs bg-slate-700/60 text-slate-300 px-2.5 py-1 rounded-full border border-slate-600/50">
+          <Wrench className="w-3 h-3 text-emerald-400" />
+          {toolName}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Add / Edit Schedule Dialog Component
+function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, onClose, onSave }) {
+  const [address, setAddress] = useState(existingItem?.address || '');
+
+  // Assignee selection / search state
+  const initialAssignee = assignees.find((a) => a.id === existingItem?.assigneeId);
+  const [assigneeSearch, setAssigneeSearch] = useState(initialAssignee?.name || '');
+  const [selectedAssignee, setSelectedAssignee] = useState(initialAssignee || null);
+  const [assigneeOpen, setAssigneeOpen] = useState(false);
+
+  // Tool selection / search state
+  const initialTool = tools.find((t) => t.id === existingItem?.toolId);
+  const [toolSearch, setToolSearch] = useState(initialTool?.name || '');
+  const [selectedTool, setSelectedTool] = useState(initialTool || null);
+  const [toolOpen, setToolOpen] = useState(false);
+
+  const filteredAssignees = assignees.filter((a) =>
+    a.name.toLowerCase().startsWith(assigneeSearch.toLowerCase())
+  );
+
+  const filteredTools = tools.filter((t) =>
+    t.name.toLowerCase().startsWith(toolSearch.toLowerCase())
+  );
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // Auto-resolve typed name if exact match found
+    const finalAssignee =
+      selectedAssignee ||
+      assignees.find((a) => a.name.toLowerCase() === assigneeSearch.trim().toLowerCase());
+
+    const finalTool =
+      selectedTool ||
+      tools.find((t) => t.name.toLowerCase() === toolSearch.trim().toLowerCase());
+
+    onSave({
+      id: existingItem?.id || null,
+      date: selectedDate,
+      address,
+      assigneeId: finalAssignee ? finalAssignee.id : null,
+      toolId: finalTool ? finalTool.id : null
+    });
+  };
+
+  return (
+    <Modal onClose={onClose} title={existingItem ? 'Edit Schedule' : 'Add Schedule'}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1">
+            Address / Location
+          </label>
+          <input
+            type="text"
+            required
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            placeholder="e.g. 123 Tech Park, Cyberjaya"
+          />
+        </div>
+
+        {/* ASSIGNEE AUTOCOMPLETE */}
+        <div className="relative">
+          <label className="block text-xs font-medium text-slate-400 mb-1">Assignee</label>
+          <input
+            type="text"
+            value={assigneeSearch}
+            onFocus={() => setAssigneeOpen(true)}
+            onChange={(e) => {
+              setAssigneeSearch(e.target.value);
+              setSelectedAssignee(null);
+              setAssigneeOpen(true);
+            }}
+            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            placeholder="Search or select assignee"
+          />
+
+          {assigneeOpen && (
+            <div className="absolute left-0 right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-40 overflow-y-auto z-30">
+              <div
+                onClick={() => {
+                  setSelectedAssignee(null);
+                  setAssigneeSearch('');
+                  setAssigneeOpen(false);
+                }}
+                className="px-3 py-2 text-sm hover:bg-slate-700 cursor-pointer text-slate-400"
+              >
+                Unassigned
+              </div>
+              {filteredAssignees.map((a) => (
+                <div
+                  key={a.id}
+                  onClick={() => {
+                    setSelectedAssignee(a);
+                    setAssigneeSearch(a.name);
+                    setAssigneeOpen(false);
+                  }}
+                  className="px-3 py-2 text-sm hover:bg-slate-700 cursor-pointer text-slate-200"
+                >
+                  {a.name}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* TOOL AUTOCOMPLETE */}
+        <div className="relative">
+          <label className="block text-xs font-medium text-slate-400 mb-1">Tool Required</label>
+          <input
+            type="text"
+            value={toolSearch}
+            onFocus={() => setToolOpen(true)}
+            onChange={(e) => {
+              setToolSearch(e.target.value);
+              setSelectedTool(null);
+              setToolOpen(true);
+            }}
+            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            placeholder="Search or select tool"
+          />
+
+          {toolOpen && (
+            <div className="absolute left-0 right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-40 overflow-y-auto z-30">
+              <div
+                onClick={() => {
+                  setSelectedTool(null);
+                  setToolSearch('');
+                  setToolOpen(false);
+                }}
+                className="px-3 py-2 text-sm hover:bg-slate-700 cursor-pointer text-slate-400"
+              >
+                None
+              </div>
+              {filteredTools.map((t) => (
+                <div
+                  key={t.id}
+                  onClick={() => {
+                    setSelectedTool(t);
+                    setToolSearch(t.name);
+                    setToolOpen(false);
+                  }}
+                  className="px-3 py-2 text-sm hover:bg-slate-700 cursor-pointer text-slate-200"
+                >
+                  {t.name}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2 pt-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg"
+          >
+            Save
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ============================================================================
+// TAB 2: ASSIGNEES DIRECTORY TAB
+// ============================================================================
+
+function AssigneesTab({ assignees, setAssignees, setSchedules }) {
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [phoneError, setPhoneError] = useState(null);
+
+  const [duplicateWarning, setDuplicateWarning] = useState(null);
+  const [editingAssignee, setEditingAssignee] = useState(null);
+  const [deletingAssignee, setDeletingAssignee] = useState(null);
+
+  const handleAdd = () => {
+    const trimmed = newName.trim();
+    const sanitized = sanitizePhoneNumber(newPhone);
+
+    if (!isValidPhoneNumber(sanitized)) {
+      setPhoneError('Phone number must be 10-15 digits');
+      return;
+    }
+    setPhoneError(null);
+
+    const isDuplicate = assignees.some(
+      (a) => a.name.toLowerCase() === trimmed.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      setDuplicateWarning({ name: trimmed, phone: sanitized });
+    } else {
+      executeAddAssignee(trimmed, sanitized);
+    }
+  };
+
+  const executeAddAssignee = (name, phone) => {
+    const nextId = assignees.length ? Math.max(...assignees.map((a) => a.id)) + 1 : 1;
+    setAssignees((prev) => [...prev, { id: nextId, name, phoneNumber: phone }]);
+    setNewName('');
+    setNewPhone('');
+    setDuplicateWarning(null);
+  };
+
+  const handleDelete = (id) => {
+    setAssignees((prev) => prev.filter((a) => a.id !== id));
+    // Clear assignee reference in schedules
+    setSchedules((prev) =>
+      prev.map((s) => (s.assigneeId === id ? { ...s, assigneeId: null } : s))
+    );
+    setDeletingAssignee(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* ADD ASSIGNEE FORM CARD */}
+      <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4">
+        <h2 className="text-sm font-semibold text-slate-200 mb-3">Add New Assignee</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input
+            type="text"
+            placeholder="Name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+          />
+          <input
+            type="text"
+            placeholder="Phone Number (e.g. 0123456789)"
+            value={newPhone}
+            onChange={(e) => {
+              setNewPhone(e.target.value);
+              setPhoneError(null);
+            }}
+            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+          />
+        </div>
+
+        {phoneError && <p className="text-rose-400 text-xs mt-1.5">{phoneError}</p>}
+
+        <div className="flex justify-end mt-3">
+          <button
+            onClick={handleAdd}
+            disabled={!newName.trim() || !newPhone.trim()}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition"
+          >
+            Add Assignee
+          </button>
+        </div>
+      </div>
+
+      {/* ASSIGNEES LIST */}
+      {assignees.length === 0 ? (
+        <p className="text-center py-10 text-slate-500 text-sm">No assignees saved in directory.</p>
+      ) : (
+        <div className="space-y-2">
+          {assignees.map((assignee) => (
+            <div
+              key={assignee.id}
+              className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3 flex items-center justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-2 text-slate-100 font-medium text-sm">
+                  <User className="w-4 h-4 text-indigo-400" />
+                  {assignee.name}
+                </div>
+                <div className="flex items-center gap-2 text-slate-400 text-xs mt-1">
+                  <Phone className="w-3.5 h-3.5" />
+                  +{assignee.phoneNumber}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setEditingAssignee(assignee)}
+                  className="p-1.5 text-indigo-400 hover:bg-slate-700 rounded-lg"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setDeletingAssignee(assignee)}
+                  className="p-1.5 text-rose-400 hover:bg-slate-700 rounded-lg"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* DUPLICATE WARNING MODAL */}
+      {duplicateWarning && (
+        <Modal onClose={() => setDuplicateWarning(null)} title="Duplicate Assignee Name">
+          <p className="text-slate-300 text-sm mb-6">
+            An assignee named '{duplicateWarning.name}' already exists. Do you still want to add
+            this contact?
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setDuplicateWarning(null)}
+              className="px-4 py-2 text-sm bg-slate-700 text-slate-200 rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() =>
+                executeAddAssignee(duplicateWarning.name, duplicateWarning.phone)
+              }
+              className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg"
+            >
+              Add Anyway
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* EDIT ASSIGNEE MODAL */}
+      {editingAssignee && (
+        <EditAssigneeModal
+          assignee={editingAssignee}
+          onClose={() => setEditingAssignee(null)}
+          onSave={(updated) => {
+            setAssignees((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+            setEditingAssignee(null);
+          }}
+        />
+      )}
+
+      {/* DELETE CONFIRM MODAL */}
+      {deletingAssignee && (
+        <Modal onClose={() => setDeletingAssignee(null)} title="Delete Assignee">
+          <p className="text-slate-300 text-sm mb-6">
+            Are you sure you want to delete '{deletingAssignee.name}'?
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setDeletingAssignee(null)}
+              className="px-4 py-2 text-sm bg-slate-700 text-slate-200 rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => handleDelete(deletingAssignee.id)}
+              className="px-4 py-2 text-sm bg-rose-600 text-white rounded-lg"
+            >
+              Delete
+            </button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function EditAssigneeModal({ assignee, onClose, onSave }) {
+  const [name, setName] = useState(assignee.name);
+  const [phone, setPhone] = useState(assignee.phoneNumber);
+  const [error, setError] = useState(null);
+
+  const handleSave = () => {
+    const sanitized = sanitizePhoneNumber(phone);
+    if (!isValidPhoneNumber(sanitized)) {
+      setError('Phone number must be 10-15 digits');
+      return;
+    }
+    onSave({ ...assignee, name: name.trim(), phoneNumber: sanitized });
+  };
+
+  return (
+    <Modal onClose={onClose} title="Edit Assignee">
+      <div className="space-y-3">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
+        />
+        <input
+          type="text"
+          value={phone}
+          onChange={(e) => {
+            setPhone(e.target.value);
+            setError(null);
+          }}
+          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
+        />
+        {error && <p className="text-rose-400 text-xs">{error}</p>}
+        <div className="flex justify-end gap-2 pt-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm bg-slate-700 text-slate-200 rounded-lg">
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!name.trim() || !phone.trim()}
+            className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg disabled:opacity-50"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ============================================================================
+// TAB 3: TOOLS MANAGEMENT TAB
+// ============================================================================
+
+function ToolsTab({ tools, setTools, setSchedules }) {
+  const [showModal, setShowModal] = useState(false);
+  const [editingTool, setEditingTool] = useState(null);
+
+  const handleSaveTool = (name, description) => {
+    if (editingTool) {
+      setTools((prev) =>
+        prev.map((t) => (t.id === editingTool.id ? { ...t, name, description } : t))
+      );
+    } else {
+      const nextId = tools.length ? Math.max(...tools.map((t) => t.id)) + 1 : 1;
+      setTools((prev) => [...prev, { id: nextId, name, description }]);
+    }
+    setShowModal(false);
+  };
+
+  const handleDeleteTool = (id) => {
+    setTools((prev) => prev.filter((t) => t.id !== id));
+    // Clear tool reference in schedules
+    setSchedules((prev) => prev.map((s) => (s.toolId === id ? { ...s, toolId: null } : s)));
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-2">
+        <h2 className="text-lg font-semibold text-slate-100">Tool Directory</h2>
         <button
-          onClick={() => setActiveTab('templates')}
-          className={`flex flex-col items-center gap-1 text-[11px] font-medium transition ${
-            activeTab === 'templates' ? 'text-zinc-900 font-bold' : 'text-zinc-500'
-          }`}
+          onClick={() => {
+            setEditingTool(null);
+            setShowModal(true);
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow transition"
         >
-          <div className={`p-1 px-4 rounded-full ${activeTab === 'templates' ? 'bg-zinc-200' : ''}`}>
-            <FileText className="w-5 h-5" />
-          </div>
-          Templates
+          <Plus className="w-4 h-4" /> Add Tool
         </button>
-      </nav>
+      </div>
 
+      {tools.length === 0 ? (
+        <div className="text-center py-16 bg-slate-800/40 rounded-xl border border-dashed border-slate-700">
+          <p className="text-slate-400 text-base">No tools added yet.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {tools.map((tool) => (
+            <div
+              key={tool.id}
+              className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 flex items-center justify-between"
+            >
+              <div>
+                <h3 className="text-slate-100 font-medium text-sm flex items-center gap-2">
+                  <Wrench className="w-4 h-4 text-emerald-400" />
+                  {tool.name}
+                </h3>
+                {tool.description && (
+                  <p className="text-slate-400 text-xs mt-1">{tool.description}</p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    setEditingTool(tool);
+                    setShowModal(true);
+                  }}
+                  className="p-1.5 text-indigo-400 hover:bg-slate-700 rounded-lg"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDeleteTool(tool.id)}
+                  className="p-1.5 text-rose-400 hover:bg-slate-700 rounded-lg"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showModal && (
+        <AddEditToolModal
+          existingTool={editingTool}
+          onClose={() => setShowModal(false)}
+          onSave={handleSaveTool}
+        />
+      )}
+    </div>
+  );
+}
+
+function AddEditToolModal({ existingTool, onClose, onSave }) {
+  const [name, setName] = useState(existingTool?.name || '');
+  const [description, setDescription] = useState(existingTool?.description || '');
+
+  return (
+    <Modal onClose={onClose} title={existingTool ? 'Edit Tool' : 'Add Tool'}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (name.trim()) onSave(name.trim(), description.trim());
+        }}
+        className="space-y-3"
+      >
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1">Tool Name</label>
+          <input
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1">
+            Description (Optional)
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 h-20"
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm bg-slate-700 text-slate-200 rounded-lg"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!name.trim()}
+            className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg disabled:opacity-50"
+          >
+            Save
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ============================================================================
+// TAB 4: TEMPLATE EDITOR TAB
+// ============================================================================
+
+function TemplatesTab({
+  savedTemplate,
+  setSavedTemplate,
+  templateDraft,
+  setTemplateDraft,
+  hasUnsaved,
+  setHasUnsaved
+}) {
+  const tags = ['{assignee}', '{date}', '{address}', '{tool}'];
+
+  const handleTextChange = (value) => {
+    setTemplateDraft(value);
+    setHasUnsaved(value !== savedTemplate);
+  };
+
+  const insertTag = (tag) => {
+    const nextText = templateDraft + tag;
+    setTemplateDraft(nextText);
+    setHasUnsaved(nextText !== savedTemplate);
+  };
+
+  const handleSave = () => {
+    setSavedTemplate(templateDraft);
+    setHasUnsaved(false);
+  };
+
+  // Preview renderer
+  const previewText = useMemo(() => {
+    const raw = templateDraft.trim() || DEFAULT_TEMPLATE;
+    return raw
+      .replace(/{assignee}/g, 'Alex')
+      .replace(/{name}/g, 'Alex')
+      .replace(/{date}/g, '2026-08-08')
+      .replace(/{address}/g, '123 Tech Park, Cyberjaya')
+      .replace(/{location}/g, '123 Tech Park, Cyberjaya')
+      .replace(/{tool}/g, 'Drill Kit');
+  }, [templateDraft]);
+
+  return (
+    <div className="space-y-4">
+      {/* EDITOR CARD */}
+      <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-200">WhatsApp Message Template</h2>
+          {hasUnsaved && (
+            <span className="text-xs text-amber-400 font-medium flex items-center gap-1">
+              <AlertTriangle className="w-3.5 h-3.5" /> Unsaved changes
+            </span>
+          )}
+        </div>
+
+        {/* Placeholder Tag Injection Buttons */}
+        <div className="flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <button
+              key={tag}
+              onClick={() => insertTag(tag)}
+              className="text-xs font-mono bg-slate-700 hover:bg-indigo-900/60 hover:text-indigo-300 text-slate-300 px-2 py-1 rounded border border-slate-600 transition"
+            >
+              + {tag}
+            </button>
+          ))}
+        </div>
+
+        <textarea
+          value={templateDraft}
+          onChange={(e) => handleTextChange(e.target.value)}
+          rows={6}
+          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm font-mono text-slate-100 focus:outline-none focus:border-indigo-500"
+          placeholder="Enter custom template..."
+        />
+
+        <div className="flex justify-end">
+          <button
+            onClick={handleSave}
+            disabled={!hasUnsaved}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition"
+          >
+            <Check className="w-4 h-4" /> Save Template
+          </button>
+        </div>
+      </div>
+
+      {/* LIVE PREVIEW CARD */}
+      <div className="bg-slate-800/40 border border-slate-700/40 rounded-xl p-4 space-y-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          Live WhatsApp Preview
+        </h3>
+        <div className="bg-emerald-950/30 border border-emerald-900/40 rounded-lg p-3 text-sm text-emerald-100 whitespace-pre-wrap font-sans">
+          {previewText}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// General Modal Shell Component
+function Modal({ title, children, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-base font-bold text-slate-100">{title}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }

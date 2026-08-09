@@ -132,7 +132,7 @@ export default function ScheduleManagerApp() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-black flex flex-col font-sans w-full max-w-md mx-auto overflow-x-hidden border-x border-black relative min-w-0">
+    <div className="min-h-screen bg-white text-black flex flex-col font-sans w-full max-w-md mx-auto overflow-hidden border-x border-black relative min-w-0">
       {/* HEADER TOP BAR */}
       <header className="bg-white border-b border-black sticky top-0 z-20">
         <div className="px-4 py-3 flex items-center justify-between">
@@ -180,7 +180,7 @@ export default function ScheduleManagerApp() {
       </header>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 w-full p-3.5 min-w-0 bg-white">
+      <main className="flex-1 w-full p-3.5 min-w-0 bg-white relative pb-20">
         {activeTab === 0 && (
           <ScheduleTab
             selectedDate={selectedDate}
@@ -348,16 +348,16 @@ function ScheduleTab({
         </div>
       )}
 
-      {/* FAB BUTTON */}
+      {/* FAB BUTTON (ANCHORED INSIDE CONTAINER) */}
       <button
         onClick={() => {
           setEditingItem(null);
           setShowAddEditModal(true);
         }}
-        className="fixed bottom-5 right-5 w-12 h-12 bg-black text-white hover:bg-zinc-800 rounded-full flex items-center justify-center border-2 border-black transition transform active:scale-95 z-10 shadow-lg"
+        className="absolute bottom-4 right-4 w-11 h-11 bg-black text-white hover:bg-zinc-800 rounded-full flex items-center justify-center border-2 border-black transition transform active:scale-95 z-10 shadow-lg"
         title="Add Schedule"
       >
-        <Plus className="w-6 h-6 stroke-[2.5]" />
+        <Plus className="w-5 h-5 stroke-[2.5]" />
       </button>
 
       {/* ADD/EDIT MODAL */}

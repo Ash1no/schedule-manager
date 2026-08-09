@@ -132,9 +132,9 @@ export default function ScheduleManagerApp() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-black flex flex-col font-sans w-full max-w-md mx-auto overflow-hidden border-x border-black relative min-w-0">
+    <div className="h-screen h-[100dvh] bg-white text-black flex flex-col font-sans w-full max-w-md mx-auto overflow-hidden border-x border-black relative min-w-0">
       {/* HEADER TOP BAR */}
-      <header className="bg-white border-b border-black sticky top-0 z-20">
+      <header className="bg-white border-b border-black shrink-0 z-20">
         <div className="px-4 py-3 flex items-center justify-between">
           <h1 className="text-base font-bold tracking-tight text-black flex items-center gap-2 font-mono">
             <BookOpen className="w-5 h-5 text-black" /> SCHEDULE_PLANNER
@@ -180,7 +180,7 @@ export default function ScheduleManagerApp() {
       </header>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 w-full p-3.5 min-w-0 bg-white relative pb-20">
+      <main className="flex-1 w-full p-3.5 min-w-0 bg-white overflow-y-auto relative pb-24">
         {activeTab === 0 && (
           <ScheduleTab
             selectedDate={selectedDate}
@@ -348,17 +348,19 @@ function ScheduleTab({
         </div>
       )}
 
-      {/* FAB BUTTON (ANCHORED INSIDE CONTAINER) */}
-      <button
-        onClick={() => {
-          setEditingItem(null);
-          setShowAddEditModal(true);
-        }}
-        className="absolute bottom-4 right-4 w-11 h-11 bg-black text-white hover:bg-zinc-800 rounded-full flex items-center justify-center border-2 border-black transition transform active:scale-95 z-10 shadow-lg"
-        title="Add Schedule"
-      >
-        <Plus className="w-5 h-5 stroke-[2.5]" />
-      </button>
+      {/* FAB BUTTON (PINNED WITHIN VISIBLE VIEWPORT) */}
+      <div className="fixed bottom-6 left-0 right-0 max-w-md mx-auto px-4 pointer-events-none flex justify-end z-30">
+        <button
+          onClick={() => {
+            setEditingItem(null);
+            setShowAddEditModal(true);
+          }}
+          className="pointer-events-auto w-12 h-12 bg-black text-white hover:bg-zinc-800 rounded-full flex items-center justify-center border-2 border-black transition transform active:scale-95 shadow-xl"
+          title="Add Schedule"
+        >
+          <Plus className="w-6 h-6 stroke-[2.5]" />
+        </button>
+      </div>
 
       {/* ADD/EDIT MODAL */}
       {showAddEditModal && (

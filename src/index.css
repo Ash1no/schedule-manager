@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Smooth scrolling and iOS touch optimizations */
+html, body {
+  height: 100%;
+  -webkit-tap-highlight-color: transparent;
+}

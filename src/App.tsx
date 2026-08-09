@@ -9,13 +9,13 @@ import {
   Edit2,
   Share2,
   Lock,
-  Unlock,
   ChevronLeft,
   ChevronRight,
   Phone,
   AlertTriangle,
   Check,
-  X
+  X,
+  BookOpen
 } from 'lucide-react';
 
 // ============================================================================
@@ -43,7 +43,7 @@ const INITIAL_TOOLS = [
 ];
 
 const DEFAULT_TEMPLATE =
-  "Hi {assignee}, here is your schedule:\n\n📅 Date: {date}\n📍 Address: {address}\n🛠 Tool: {tool}";
+  "Hi {assignee}, here is your schedule:\n\n📅 Date: {date}\n📍 Address: {address}\n🔧 Tool: {tool}";
 
 function sanitizePhoneNumber(raw) {
   const digits = raw.replace(/\D/g, '');
@@ -58,7 +58,6 @@ function isValidPhoneNumber(sanitized) {
   return sanitized.length >= 10 && sanitized.length <= 15;
 }
 
-// Date handling helpers
 function parseISO(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d);
@@ -133,36 +132,40 @@ export default function ScheduleManagerApp() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
-      {/* TOP HEADER / BAR */}
-      <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-indigo-400" /> Schedule Manager
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans w-full max-w-md mx-auto overflow-x-hidden border-x border-zinc-800/80 shadow-2xl relative min-w-0">
+      {/* HEADER / NOTEBOOK BINDER TOP BAR */}
+      <header className="bg-zinc-900 border-b border-zinc-800 sticky top-0 z-20">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <h1 className="text-base font-bold tracking-tight text-zinc-100 flex items-center gap-2 font-mono">
+            <BookOpen className="w-5 h-5 text-zinc-300" /> SCHEDULE_PLANNER
           </h1>
 
           {activeTab === 0 && (
-            <div className="flex items-center gap-3">
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${isEditMode ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-700 text-slate-400'}`}>
-                {isEditMode ? 'Edit Mode' : 'View Mode'}
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded border ${
+                isEditMode
+                  ? 'bg-zinc-100 text-zinc-950 border-zinc-100'
+                  : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+              }`}>
+                {isEditMode ? 'EDIT' : 'VIEW'}
               </span>
               <button
                 onClick={() => setIsEditMode(!isEditMode)}
-                className={`p-2 rounded-lg border transition ${
+                className={`p-1.5 rounded border transition ${
                   isEditMode
-                    ? 'bg-indigo-600 border-indigo-500 text-white'
-                    : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'
+                    ? 'bg-zinc-100 border-zinc-100 text-zinc-950'
+                    : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-800'
                 }`}
                 title="Toggle Edit Mode"
               >
-                {isEditMode ? <Edit2 className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                {isEditMode ? <Edit2 className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
               </button>
             </div>
           )}
         </div>
 
-        {/* BOTTOM NAVIGATION TABS */}
-        <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-slate-700/50">
+        {/* SCROLLABLE HORIZONTAL TAB STRIP */}
+        <div className="flex gap-1 border-t border-zinc-800/80 overflow-x-auto no-scrollbar whitespace-nowrap px-3 py-1.5 bg-zinc-900/90">
           <TabButton icon={<Calendar />} label="Schedules" active={activeTab === 0} onClick={() => handleTabSwitch(0)} />
           <TabButton icon={<User />} label="Assignees" active={activeTab === 1} onClick={() => handleTabSwitch(1)} />
           <TabButton icon={<Wrench />} label="Tools" active={activeTab === 2} onClick={() => handleTabSwitch(2)} />
@@ -177,7 +180,7 @@ export default function ScheduleManagerApp() {
       </header>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4">
+      <main className="flex-1 w-full p-3.5 min-w-0">
         {activeTab === 0 && (
           <ScheduleTab
             selectedDate={selectedDate}
@@ -223,14 +226,14 @@ export default function ScheduleManagerApp() {
 
       {/* UNSAVED CHANGES GUARD MODAL */}
       {pendingTab !== null && (
-        <Modal onClose={() => setPendingTab(null)} title="Unsaved Changes">
-          <p className="text-slate-300 text-sm mb-6">
-            You have unsaved template edits. Are you sure you want to leave? Your changes will be lost.
+        <Modal onClose={() => setPendingTab(null)} title="Unsaved Edits">
+          <p className="text-zinc-300 text-xs font-mono mb-5 leading-relaxed">
+            Unsaved template edits exist. Leaving now will discard your changes.
           </p>
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-2">
             <button
               onClick={() => setPendingTab(null)}
-              className="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200"
+              className="px-3 py-1.5 text-xs font-mono bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-200 border border-zinc-700"
             >
               Keep Editing
             </button>
@@ -241,7 +244,7 @@ export default function ScheduleManagerApp() {
                 setActiveTab(pendingTab);
                 setPendingTab(null);
               }}
-              className="px-4 py-2 text-sm bg-rose-600 hover:bg-rose-500 rounded-lg text-white font-medium"
+              className="px-3 py-1.5 text-xs font-mono bg-rose-600 hover:bg-rose-500 rounded text-white font-semibold"
             >
               Discard & Leave
             </button>
@@ -257,15 +260,15 @@ function TabButton({ icon, label, active, onClick, hasBadge }) {
   return (
     <button
       onClick={onClick}
-      className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition ${
+      className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono transition rounded-md ${
         active
-          ? 'border-indigo-500 text-indigo-400 bg-slate-800/50'
-          : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'
+          ? 'bg-zinc-100 text-zinc-950 font-bold shadow-sm'
+          : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
       }`}
     >
-      {React.cloneElement(icon, { className: 'w-4 h-4' })}
+      {React.cloneElement(icon, { className: 'w-3.5 h-3.5' })}
       <span>{label}</span>
-      {hasBadge && <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
+      {hasBadge && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
     </button>
   );
 }
@@ -287,7 +290,6 @@ function ScheduleTab({
   const [showAddEditModal, setShowAddEditModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
 
-  // Filtered schedules for selected date
   const displayedItems = useMemo(() => {
     return schedules.filter((s) => s.date === selectedDate);
   }, [schedules, selectedDate]);
@@ -307,7 +309,7 @@ function ScheduleTab({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5 min-w-0">
       {/* 7-DAY WEEK STRIP HEADER */}
       <WeekHeaderStrip
         selectedDate={selectedDate}
@@ -317,12 +319,12 @@ function ScheduleTab({
 
       {/* SCHEDULE CARDS LIST */}
       {displayedItems.length === 0 ? (
-        <div className="text-center py-16 bg-slate-800/40 rounded-xl border border-dashed border-slate-700">
-          <p className="text-slate-400 text-base">No schedules for this day.</p>
-          <p className="text-slate-500 text-xs mt-1">Tap + button to add one.</p>
+        <div className="text-center py-12 bg-zinc-900/50 rounded-lg border border-dashed border-zinc-800">
+          <p className="text-zinc-400 text-xs font-mono">NO ENTRIES FOR THIS DATE</p>
+          <p className="text-zinc-600 text-[11px] font-mono mt-1">Tap + below to add a record.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {displayedItems.map((item) => {
             const assignee = assignees.find((a) => a.id === item.assigneeId);
             const tool = tools.find((t) => t.id === item.toolId);
@@ -346,16 +348,16 @@ function ScheduleTab({
         </div>
       )}
 
-      {/* FLOATING ACTION BUTTON */}
+      {/* STARK FAB BUTTON */}
       <button
         onClick={() => {
           setEditingItem(null);
           setShowAddEditModal(true);
         }}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-900/40 transition transform active:scale-95 z-10"
+        className="fixed bottom-5 right-5 w-12 h-12 bg-zinc-100 text-zinc-950 hover:bg-zinc-200 rounded-full flex items-center justify-center shadow-2xl border border-zinc-300 transition transform active:scale-95 z-10"
         title="Add Schedule"
       >
-        <Plus className="w-6 h-6" />
+        <Plus className="w-5 h-5 stroke-[2.5]" />
       </button>
 
       {/* ADD/EDIT MODAL */}
@@ -407,37 +409,37 @@ function WeekHeaderStrip({ selectedDate, schedules, onDateSelected }) {
   })}, ${sunday.getFullYear()}`;
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-sm">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-2.5 shadow-sm">
       {/* Week Title Bar */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2 px-1">
         <button
           onClick={() => shiftWeek(-1)}
-          className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700"
+          className="p-1 text-zinc-400 hover:text-white rounded hover:bg-zinc-800"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-4 h-4" />
         </button>
 
-        <div className="relative group flex items-center gap-2 cursor-pointer">
+        <div className="relative group flex items-center cursor-pointer">
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => e.target.value && onDateSelected(e.target.value)}
             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
           />
-          <span className="font-semibold text-sm text-slate-200 group-hover:text-indigo-400 transition">
+          <span className="font-mono text-xs font-bold text-zinc-300 group-hover:text-white transition">
             {rangeText}
           </span>
         </div>
 
         <button
           onClick={() => shiftWeek(1)}
-          className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700"
+          className="p-1 text-zinc-400 hover:text-white rounded hover:bg-zinc-800"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
-      {/* 7 Day Pills */}
+      {/* 7 Day Grid */}
       <div className="grid grid-cols-7 gap-1">
         {weekDays.map((dayDate) => {
           const iso = formatISO(dayDate);
@@ -447,51 +449,32 @@ function WeekHeaderStrip({ selectedDate, schedules, onDateSelected }) {
             .toUpperCase();
           const dayNum = dayDate.getDate();
 
-          // Count schedules for dots
           const eventCount = schedules.filter((s) => s.date === iso).length;
-          const maxDots = Math.min(eventCount, 9);
-          const topRowDots = Math.min(maxDots, 5);
-          const bottomRowDots = Math.max(0, maxDots - 5);
+          const maxDots = Math.min(eventCount, 6);
 
           return (
             <button
               key={iso}
               onClick={() => onDateSelected(iso)}
-              className={`flex flex-col items-center py-2 px-1 rounded-lg transition ${
+              className={`flex flex-col items-center py-1.5 px-0.5 rounded transition font-mono ${
                 isSelected
-                  ? 'bg-indigo-600 text-white shadow'
-                  : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300'
+                  ? 'bg-zinc-100 text-zinc-950 font-bold shadow'
+                  : 'bg-zinc-950/80 hover:bg-zinc-800 text-zinc-400 border border-zinc-800/60'
               }`}
             >
-              <span className="text-[10px] font-bold tracking-wider opacity-80">{dayName}</span>
-              <span className="text-sm font-semibold my-0.5">{dayNum}</span>
+              <span className="text-[9px] tracking-tight opacity-75">{dayName}</span>
+              <span className="text-xs font-semibold my-0.5">{dayNum}</span>
 
-              {/* Event count indicator dots */}
-              <div className="h-2.5 flex flex-col justify-center gap-0.5">
-                {topRowDots > 0 && (
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: topRowDots }).map((_, i) => (
-                      <span
-                        key={i}
-                        className={`w-1 h-1 rounded-full ${
-                          isSelected ? 'bg-white' : 'bg-slate-400'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                )}
-                {bottomRowDots > 0 && (
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: bottomRowDots }).map((_, i) => (
-                      <span
-                        key={i}
-                        className={`w-1 h-1 rounded-full ${
-                          isSelected ? 'bg-white' : 'bg-slate-400'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                )}
+              {/* Dot Indicators */}
+              <div className="h-1.5 flex items-center justify-center gap-0.5">
+                {Array.from({ length: maxDots }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`w-1 h-1 rounded-full ${
+                      isSelected ? 'bg-zinc-950' : 'bg-zinc-500'
+                    }`}
+                  />
+                ))}
               </div>
             </button>
           );
@@ -527,43 +510,45 @@ function ScheduleCard({ item, assignee, tool, savedTemplate, isEditMode, onEdit,
   };
 
   return (
-    <div className="bg-slate-800/90 border border-slate-700/80 rounded-xl p-4 shadow-sm hover:border-slate-600 transition">
-      <div className="flex justify-between items-start gap-2">
-        <h3 className="font-semibold text-slate-100 text-base leading-snug">{item.address}</h3>
+    <div className="bg-zinc-900/90 border border-zinc-800 rounded-lg p-3 shadow-sm hover:border-zinc-700 transition min-w-0">
+      <div className="flex justify-between items-start gap-2 min-w-0">
+        <h3 className="font-semibold text-zinc-100 text-sm leading-snug break-words min-w-0 flex-1">
+          {item.address}
+        </h3>
 
         {isEditMode ? (
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={onEdit}
-              className="p-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-slate-700 rounded-lg"
+              className="p-1 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded"
             >
-              <Edit2 className="w-4 h-4" />
+              <Edit2 className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={onDelete}
-              className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-slate-700 rounded-lg"
+              className="p-1 text-rose-400 hover:text-rose-300 hover:bg-zinc-800 rounded"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
         ) : (
           <button
             onClick={handleWhatsAppShare}
-            className="p-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/50 rounded-lg transition"
+            className="p-1.5 text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded border border-zinc-700 transition shrink-0"
             title="Share via WhatsApp"
           >
-            <Share2 className="w-4 h-4" />
+            <Share2 className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2 mt-3">
-        <span className="inline-flex items-center gap-1.5 text-xs bg-slate-700/60 text-slate-300 px-2.5 py-1 rounded-full border border-slate-600/50">
-          <User className="w-3 h-3 text-indigo-400" />
+      <div className="flex flex-wrap gap-1.5 mt-2.5">
+        <span className="inline-flex items-center gap-1 text-[11px] font-mono bg-zinc-950 text-zinc-300 px-2 py-0.5 rounded border border-zinc-800">
+          <User className="w-3 h-3 text-zinc-400" />
           {assigneeName}
         </span>
-        <span className="inline-flex items-center gap-1.5 text-xs bg-slate-700/60 text-slate-300 px-2.5 py-1 rounded-full border border-slate-600/50">
-          <Wrench className="w-3 h-3 text-emerald-400" />
+        <span className="inline-flex items-center gap-1 text-[11px] font-mono bg-zinc-950 text-zinc-300 px-2 py-0.5 rounded border border-zinc-800">
+          <Wrench className="w-3 h-3 text-zinc-400" />
           {toolName}
         </span>
       </div>
@@ -575,13 +560,11 @@ function ScheduleCard({ item, assignee, tool, savedTemplate, isEditMode, onEdit,
 function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, onClose, onSave }) {
   const [address, setAddress] = useState(existingItem?.address || '');
 
-  // Assignee selection / search state
   const initialAssignee = assignees.find((a) => a.id === existingItem?.assigneeId);
   const [assigneeSearch, setAssigneeSearch] = useState(initialAssignee?.name || '');
   const [selectedAssignee, setSelectedAssignee] = useState(initialAssignee || null);
   const [assigneeOpen, setAssigneeOpen] = useState(false);
 
-  // Tool selection / search state
   const initialTool = tools.find((t) => t.id === existingItem?.toolId);
   const [toolSearch, setToolSearch] = useState(initialTool?.name || '');
   const [selectedTool, setSelectedTool] = useState(initialTool || null);
@@ -598,7 +581,6 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Auto-resolve typed name if exact match found
     const finalAssignee =
       selectedAssignee ||
       assignees.find((a) => a.name.toLowerCase() === assigneeSearch.trim().toLowerCase());
@@ -617,25 +599,23 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
   };
 
   return (
-    <Modal onClose={onClose} title={existingItem ? 'Edit Schedule' : 'Add Schedule'}>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal onClose={onClose} title={existingItem ? 'Edit Entry' : 'New Schedule Entry'}>
+      <form onSubmit={handleSubmit} className="space-y-3 font-mono text-xs">
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1">
-            Address / Location
-          </label>
+          <label className="block text-zinc-400 mb-1">LOCATION / ADDRESS</label>
           <input
             type="text"
             required
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100 focus:outline-none focus:border-zinc-500"
             placeholder="e.g. 123 Tech Park, Cyberjaya"
           />
         </div>
 
         {/* ASSIGNEE AUTOCOMPLETE */}
         <div className="relative">
-          <label className="block text-xs font-medium text-slate-400 mb-1">Assignee</label>
+          <label className="block text-zinc-400 mb-1">ASSIGNEE</label>
           <input
             type="text"
             value={assigneeSearch}
@@ -645,21 +625,21 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
               setSelectedAssignee(null);
               setAssigneeOpen(true);
             }}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
-            placeholder="Search or select assignee"
+            className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100 focus:outline-none focus:border-zinc-500"
+            placeholder="Search assignee..."
           />
 
           {assigneeOpen && (
-            <div className="absolute left-0 right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-40 overflow-y-auto z-30">
+            <div className="absolute left-0 right-0 top-full mt-1 bg-zinc-900 border border-zinc-800 rounded shadow-xl max-h-36 overflow-y-auto z-30">
               <div
                 onClick={() => {
                   setSelectedAssignee(null);
                   setAssigneeSearch('');
                   setAssigneeOpen(false);
                 }}
-                className="px-3 py-2 text-sm hover:bg-slate-700 cursor-pointer text-slate-400"
+                className="px-2.5 py-1.5 hover:bg-zinc-800 cursor-pointer text-zinc-500"
               >
-                Unassigned
+                [ Unassigned ]
               </div>
               {filteredAssignees.map((a) => (
                 <div
@@ -669,7 +649,7 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
                     setAssigneeSearch(a.name);
                     setAssigneeOpen(false);
                   }}
-                  className="px-3 py-2 text-sm hover:bg-slate-700 cursor-pointer text-slate-200"
+                  className="px-2.5 py-1.5 hover:bg-zinc-800 cursor-pointer text-zinc-200"
                 >
                   {a.name}
                 </div>
@@ -680,7 +660,7 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
 
         {/* TOOL AUTOCOMPLETE */}
         <div className="relative">
-          <label className="block text-xs font-medium text-slate-400 mb-1">Tool Required</label>
+          <label className="block text-zinc-400 mb-1">REQUIRED TOOL</label>
           <input
             type="text"
             value={toolSearch}
@@ -690,21 +670,21 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
               setSelectedTool(null);
               setToolOpen(true);
             }}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
-            placeholder="Search or select tool"
+            className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100 focus:outline-none focus:border-zinc-500"
+            placeholder="Search tool..."
           />
 
           {toolOpen && (
-            <div className="absolute left-0 right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-40 overflow-y-auto z-30">
+            <div className="absolute left-0 right-0 top-full mt-1 bg-zinc-900 border border-zinc-800 rounded shadow-xl max-h-36 overflow-y-auto z-30">
               <div
                 onClick={() => {
                   setSelectedTool(null);
                   setToolSearch('');
                   setToolOpen(false);
                 }}
-                className="px-3 py-2 text-sm hover:bg-slate-700 cursor-pointer text-slate-400"
+                className="px-2.5 py-1.5 hover:bg-zinc-800 cursor-pointer text-zinc-500"
               >
-                None
+                [ None ]
               </div>
               {filteredTools.map((t) => (
                 <div
@@ -714,7 +694,7 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
                     setToolSearch(t.name);
                     setToolOpen(false);
                   }}
-                  className="px-3 py-2 text-sm hover:bg-slate-700 cursor-pointer text-slate-200"
+                  className="px-2.5 py-1.5 hover:bg-zinc-800 cursor-pointer text-zinc-200"
                 >
                   {t.name}
                 </div>
@@ -723,19 +703,19 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
           )}
         </div>
 
-        <div className="flex justify-end gap-2 pt-3">
+        <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg"
+            className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg"
+            className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-950 font-semibold rounded"
           >
-            Save
+            Save Entry
           </button>
         </div>
       </form>
@@ -761,7 +741,7 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
     const sanitized = sanitizePhoneNumber(newPhone);
 
     if (!isValidPhoneNumber(sanitized)) {
-      setPhoneError('Phone number must be 10-15 digits');
+      setPhoneError('Phone must be 10-15 digits');
       return;
     }
     setPhoneError(null);
@@ -787,7 +767,6 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
 
   const handleDelete = (id) => {
     setAssignees((prev) => prev.filter((a) => a.id !== id));
-    // Clear assignee reference in schedules
     setSchedules((prev) =>
       prev.map((s) => (s.assigneeId === id ? { ...s, assigneeId: null } : s))
     );
@@ -795,17 +774,17 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 font-mono text-xs">
       {/* ADD ASSIGNEE FORM CARD */}
-      <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4">
-        <h2 className="text-sm font-semibold text-slate-200 mb-3">Add New Assignee</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
+        <h2 className="text-zinc-300 font-bold mb-2">+ ADD ASSIGNEE</h2>
+        <div className="space-y-2">
           <input
             type="text"
             placeholder="Name"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100 focus:outline-none focus:border-zinc-500"
           />
           <input
             type="text"
@@ -815,40 +794,40 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
               setNewPhone(e.target.value);
               setPhoneError(null);
             }}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100 focus:outline-none focus:border-zinc-500"
           />
         </div>
 
-        {phoneError && <p className="text-rose-400 text-xs mt-1.5">{phoneError}</p>}
+        {phoneError && <p className="text-rose-400 text-[11px] mt-1.5">{phoneError}</p>}
 
-        <div className="flex justify-end mt-3">
+        <div className="flex justify-end mt-2.5">
           <button
             onClick={handleAdd}
             disabled={!newName.trim() || !newPhone.trim()}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition"
+            className="px-3 py-1.5 bg-zinc-100 text-zinc-950 hover:bg-zinc-200 disabled:opacity-40 font-semibold rounded transition"
           >
-            Add Assignee
+            Add Contact
           </button>
         </div>
       </div>
 
       {/* ASSIGNEES LIST */}
       {assignees.length === 0 ? (
-        <p className="text-center py-10 text-slate-500 text-sm">No assignees saved in directory.</p>
+        <p className="text-center py-8 text-zinc-600">No assignees saved.</p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {assignees.map((assignee) => (
             <div
               key={assignee.id}
-              className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3 flex items-center justify-between"
+              className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-2.5 flex items-center justify-between"
             >
               <div>
-                <div className="flex items-center gap-2 text-slate-100 font-medium text-sm">
-                  <User className="w-4 h-4 text-indigo-400" />
+                <div className="flex items-center gap-1.5 text-zinc-200 font-semibold">
+                  <User className="w-3.5 h-3.5 text-zinc-400" />
                   {assignee.name}
                 </div>
-                <div className="flex items-center gap-2 text-slate-400 text-xs mt-1">
-                  <Phone className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-1.5 text-zinc-500 text-[11px] mt-0.5">
+                  <Phone className="w-3 h-3" />
                   +{assignee.phoneNumber}
                 </div>
               </div>
@@ -856,15 +835,15 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setEditingAssignee(assignee)}
-                  className="p-1.5 text-indigo-400 hover:bg-slate-700 rounded-lg"
+                  className="p-1 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded"
                 >
-                  <Edit2 className="w-4 h-4" />
+                  <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => setDeletingAssignee(assignee)}
-                  className="p-1.5 text-rose-400 hover:bg-slate-700 rounded-lg"
+                  className="p-1 text-rose-400 hover:text-rose-300 hover:bg-zinc-800 rounded"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -874,15 +853,14 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
 
       {/* DUPLICATE WARNING MODAL */}
       {duplicateWarning && (
-        <Modal onClose={() => setDuplicateWarning(null)} title="Duplicate Assignee Name">
-          <p className="text-slate-300 text-sm mb-6">
-            An assignee named '{duplicateWarning.name}' already exists. Do you still want to add
-            this contact?
+        <Modal onClose={() => setDuplicateWarning(null)} title="Duplicate Name">
+          <p className="text-zinc-300 text-xs font-mono mb-4">
+            An assignee named '{duplicateWarning.name}' already exists. Continue?
           </p>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 font-mono">
             <button
               onClick={() => setDuplicateWarning(null)}
-              className="px-4 py-2 text-sm bg-slate-700 text-slate-200 rounded-lg"
+              className="px-3 py-1.5 bg-zinc-800 text-zinc-200 rounded"
             >
               Cancel
             </button>
@@ -890,7 +868,7 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
               onClick={() =>
                 executeAddAssignee(duplicateWarning.name, duplicateWarning.phone)
               }
-              className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg"
+              className="px-3 py-1.5 bg-zinc-100 text-zinc-950 font-semibold rounded"
             >
               Add Anyway
             </button>
@@ -912,20 +890,20 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
 
       {/* DELETE CONFIRM MODAL */}
       {deletingAssignee && (
-        <Modal onClose={() => setDeletingAssignee(null)} title="Delete Assignee">
-          <p className="text-slate-300 text-sm mb-6">
-            Are you sure you want to delete '{deletingAssignee.name}'?
+        <Modal onClose={() => setDeletingAssignee(null)} title="Confirm Delete">
+          <p className="text-zinc-300 text-xs font-mono mb-4">
+            Delete contact '{deletingAssignee.name}'?
           </p>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 font-mono">
             <button
               onClick={() => setDeletingAssignee(null)}
-              className="px-4 py-2 text-sm bg-slate-700 text-slate-200 rounded-lg"
+              className="px-3 py-1.5 bg-zinc-800 text-zinc-200 rounded"
             >
               Cancel
             </button>
             <button
               onClick={() => handleDelete(deletingAssignee.id)}
-              className="px-4 py-2 text-sm bg-rose-600 text-white rounded-lg"
+              className="px-3 py-1.5 bg-rose-600 text-white rounded font-semibold"
             >
               Delete
             </button>
@@ -944,20 +922,20 @@ function EditAssigneeModal({ assignee, onClose, onSave }) {
   const handleSave = () => {
     const sanitized = sanitizePhoneNumber(phone);
     if (!isValidPhoneNumber(sanitized)) {
-      setError('Phone number must be 10-15 digits');
+      setError('Phone must be 10-15 digits');
       return;
     }
     onSave({ ...assignee, name: name.trim(), phoneNumber: sanitized });
   };
 
   return (
-    <Modal onClose={onClose} title="Edit Assignee">
-      <div className="space-y-3">
+    <Modal onClose={onClose} title="Edit Contact">
+      <div className="space-y-2.5 font-mono text-xs">
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
+          className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100"
         />
         <input
           type="text"
@@ -966,19 +944,19 @@ function EditAssigneeModal({ assignee, onClose, onSave }) {
             setPhone(e.target.value);
             setError(null);
           }}
-          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
+          className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100"
         />
-        {error && <p className="text-rose-400 text-xs">{error}</p>}
+        {error && <p className="text-rose-400 text-[11px]">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
-          <button onClick={onClose} className="px-4 py-2 text-sm bg-slate-700 text-slate-200 rounded-lg">
+          <button onClick={onClose} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded">
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={!name.trim() || !phone.trim()}
-            className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg disabled:opacity-50"
+            className="px-3 py-1.5 bg-zinc-100 text-zinc-950 font-semibold rounded disabled:opacity-40"
           >
-            Save Changes
+            Save
           </button>
         </div>
       </div>
@@ -1008,43 +986,42 @@ function ToolsTab({ tools, setTools, setSchedules }) {
 
   const handleDeleteTool = (id) => {
     setTools((prev) => prev.filter((t) => t.id !== id));
-    // Clear tool reference in schedules
     setSchedules((prev) => prev.map((s) => (s.toolId === id ? { ...s, toolId: null } : s)));
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center mb-2">
-        <h2 className="text-lg font-semibold text-slate-100">Tool Directory</h2>
+    <div className="space-y-3 font-mono text-xs">
+      <div className="flex justify-between items-center mb-1">
+        <h2 className="text-sm font-bold text-zinc-200">TOOL INVENTORY</h2>
         <button
           onClick={() => {
             setEditingTool(null);
             setShowModal(true);
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow transition"
+          className="flex items-center gap-1 px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-950 font-bold rounded shadow transition"
         >
-          <Plus className="w-4 h-4" /> Add Tool
+          <Plus className="w-3.5 h-3.5" /> Add Tool
         </button>
       </div>
 
       {tools.length === 0 ? (
-        <div className="text-center py-16 bg-slate-800/40 rounded-xl border border-dashed border-slate-700">
-          <p className="text-slate-400 text-base">No tools added yet.</p>
+        <div className="text-center py-12 bg-zinc-900/50 rounded-lg border border-dashed border-zinc-800">
+          <p className="text-zinc-500">No tools registered.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {tools.map((tool) => (
             <div
               key={tool.id}
-              className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 flex items-center justify-between"
+              className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-3 flex items-center justify-between"
             >
               <div>
-                <h3 className="text-slate-100 font-medium text-sm flex items-center gap-2">
-                  <Wrench className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-zinc-200 font-semibold flex items-center gap-1.5">
+                  <Wrench className="w-3.5 h-3.5 text-zinc-400" />
                   {tool.name}
                 </h3>
                 {tool.description && (
-                  <p className="text-slate-400 text-xs mt-1">{tool.description}</p>
+                  <p className="text-zinc-500 text-[11px] mt-0.5">{tool.description}</p>
                 )}
               </div>
 
@@ -1054,15 +1031,15 @@ function ToolsTab({ tools, setTools, setSchedules }) {
                     setEditingTool(tool);
                     setShowModal(true);
                   }}
-                  className="p-1.5 text-indigo-400 hover:bg-slate-700 rounded-lg"
+                  className="p-1 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded"
                 >
-                  <Edit2 className="w-4 h-4" />
+                  <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleDeleteTool(tool.id)}
-                  className="p-1.5 text-rose-400 hover:bg-slate-700 rounded-lg"
+                  className="p-1 text-rose-400 hover:text-rose-300 hover:bg-zinc-800 rounded"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -1092,40 +1069,38 @@ function AddEditToolModal({ existingTool, onClose, onSave }) {
           e.preventDefault();
           if (name.trim()) onSave(name.trim(), description.trim());
         }}
-        className="space-y-3"
+        className="space-y-2.5 font-mono text-xs"
       >
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1">Tool Name</label>
+          <label className="block text-zinc-400 mb-1">TOOL NAME</label>
           <input
             type="text"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
+            className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1">
-            Description (Optional)
-          </label>
+          <label className="block text-zinc-400 mb-1">DESCRIPTION (OPTIONAL)</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 h-20"
+            className="w-full bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100 h-16"
           />
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm bg-slate-700 text-slate-200 rounded-lg"
+            className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!name.trim()}
-            className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg disabled:opacity-50"
+            className="px-3 py-1.5 bg-zinc-100 text-zinc-950 font-semibold rounded disabled:opacity-40"
           >
             Save
           </button>
@@ -1165,7 +1140,6 @@ function TemplatesTab({
     setHasUnsaved(false);
   };
 
-  // Preview renderer
   const previewText = useMemo(() => {
     const raw = templateDraft.trim() || DEFAULT_TEMPLATE;
     return raw
@@ -1178,25 +1152,25 @@ function TemplatesTab({
   }, [templateDraft]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 font-mono text-xs">
       {/* EDITOR CARD */}
-      <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 space-y-3">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 space-y-2.5">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-200">WhatsApp Message Template</h2>
+          <h2 className="font-bold text-zinc-200">MESSAGE TEMPLATE</h2>
           {hasUnsaved && (
-            <span className="text-xs text-amber-400 font-medium flex items-center gap-1">
-              <AlertTriangle className="w-3.5 h-3.5" /> Unsaved changes
+            <span className="text-[11px] text-amber-400 font-semibold flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" /> UNSAVED
             </span>
           )}
         </div>
 
-        {/* Placeholder Tag Injection Buttons */}
-        <div className="flex flex-wrap gap-1.5">
+        {/* Tag Injection Buttons */}
+        <div className="flex flex-wrap gap-1">
           {tags.map((tag) => (
             <button
               key={tag}
               onClick={() => insertTag(tag)}
-              className="text-xs font-mono bg-slate-700 hover:bg-indigo-900/60 hover:text-indigo-300 text-slate-300 px-2 py-1 rounded border border-slate-600 transition"
+              className="text-[11px] bg-zinc-950 hover:bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded border border-zinc-800 transition"
             >
               + {tag}
             </button>
@@ -1206,8 +1180,8 @@ function TemplatesTab({
         <textarea
           value={templateDraft}
           onChange={(e) => handleTextChange(e.target.value)}
-          rows={6}
-          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm font-mono text-slate-100 focus:outline-none focus:border-indigo-500"
+          rows={5}
+          className="w-full bg-zinc-950 border border-zinc-800 rounded p-2.5 text-xs text-zinc-100 focus:outline-none focus:border-zinc-500"
           placeholder="Enter custom template..."
         />
 
@@ -1215,19 +1189,19 @@ function TemplatesTab({
           <button
             onClick={handleSave}
             disabled={!hasUnsaved}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 disabled:opacity-40 text-zinc-950 font-bold rounded transition"
           >
-            <Check className="w-4 h-4" /> Save Template
+            <Check className="w-3.5 h-3.5" /> Save Template
           </button>
         </div>
       </div>
 
       {/* LIVE PREVIEW CARD */}
-      <div className="bg-slate-800/40 border border-slate-700/40 rounded-xl p-4 space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Live WhatsApp Preview
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 space-y-1.5">
+        <h3 className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">
+          PREVIEW DRAFT
         </h3>
-        <div className="bg-emerald-950/30 border border-emerald-900/40 rounded-lg p-3 text-sm text-emerald-100 whitespace-pre-wrap font-sans">
+        <div className="bg-emerald-950/40 border border-emerald-900/60 rounded p-2.5 text-xs text-emerald-200 whitespace-pre-wrap leading-relaxed font-mono">
           {previewText}
         </div>
       </div>
@@ -1238,12 +1212,12 @@ function TemplatesTab({
 // General Modal Shell Component
 function Modal({ title, children, onClose }) {
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-base font-bold text-slate-100">{title}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
-            <X className="w-5 h-5" />
+    <div className="fixed inset-0 bg-zinc-950/80 backdrop-blur-xs flex items-center justify-center p-3 z-50">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg max-w-xs w-full p-4 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-xs font-mono font-bold text-zinc-100 uppercase tracking-wider">{title}</h2>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-200">
+            <X className="w-4 h-4" />
           </button>
         </div>
         {children}

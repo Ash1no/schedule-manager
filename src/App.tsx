@@ -289,6 +289,7 @@ function ScheduleTab({
 }) {
   const [showAddEditModal, setShowAddEditModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [deletingSchedule, setDeletingSchedule] = useState(null);
 
   const displayedItems = useMemo(() => {
     return schedules.filter((s) => s.date === selectedDate);
@@ -306,6 +307,7 @@ function ScheduleTab({
 
   const handleDeleteSchedule = (id) => {
     setSchedules((prev) => prev.filter((s) => s.id !== id));
+    setDeletingSchedule(null);
   };
 
   return (
@@ -341,7 +343,7 @@ function ScheduleTab({
                   setEditingItem(item);
                   setShowAddEditModal(true);
                 }}
-                onDelete={() => handleDeleteSchedule(item.id)}
+                onDelete={() => setDeletingSchedule(item)}
               />
             );
           })}
@@ -372,6 +374,29 @@ function ScheduleTab({
           onClose={() => setShowAddEditModal(false)}
           onSave={handleSaveSchedule}
         />
+      )}
+
+      {/* SCHEDULE DELETE CONFIRMATION MODAL */}
+      {deletingSchedule && (
+        <Modal onClose={() => setDeletingSchedule(null)} title="Confirm Delete">
+          <p className="text-black text-xs font-mono mb-4 leading-relaxed">
+            Delete entry at <span className="font-bold">"{deletingSchedule.address}"</span>?
+          </p>
+          <div className="flex justify-end gap-2 font-mono">
+            <button
+              onClick={() => setDeletingSchedule(null)}
+              className="px-3 py-1.5 bg-white text-black border border-black rounded hover:bg-zinc-100"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => handleDeleteSchedule(deletingSchedule.id)}
+              className="px-3 py-1.5 bg-black text-white rounded font-bold hover:bg-zinc-800"
+            >
+              Delete Entry
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -973,6 +998,7 @@ function EditAssigneeModal({ assignee, onClose, onSave }) {
 function ToolsTab({ tools, setTools, setSchedules }) {
   const [showModal, setShowModal] = useState(false);
   const [editingTool, setEditingTool] = useState(null);
+  const [deletingTool, setDeletingTool] = useState(null);
 
   const handleSaveTool = (name, description) => {
     if (editingTool) {
@@ -989,6 +1015,7 @@ function ToolsTab({ tools, setTools, setSchedules }) {
   const handleDeleteTool = (id) => {
     setTools((prev) => prev.filter((t) => t.id !== id));
     setSchedules((prev) => prev.map((s) => (s.toolId === id ? { ...s, toolId: null } : s)));
+    setDeletingTool(null);
   };
 
   return (
@@ -1038,7 +1065,7 @@ function ToolsTab({ tools, setTools, setSchedules }) {
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={() => handleDeleteTool(tool.id)}
+                  onClick={() => setDeletingTool(tool)}
                   className="p-1 text-black hover:bg-zinc-100 rounded border border-black"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -1055,6 +1082,29 @@ function ToolsTab({ tools, setTools, setSchedules }) {
           onClose={() => setShowModal(false)}
           onSave={handleSaveTool}
         />
+      )}
+
+      {/* TOOL DELETE CONFIRMATION MODAL */}
+      {deletingTool && (
+        <Modal onClose={() => setDeletingTool(null)} title="Confirm Delete">
+          <p className="text-black text-xs font-mono mb-4 leading-relaxed">
+            Delete tool <span className="font-bold">"{deletingTool.name}"</span>?
+          </p>
+          <div className="flex justify-end gap-2 font-mono">
+            <button
+              onClick={() => setDeletingTool(null)}
+              className="px-3 py-1.5 bg-white text-black border border-black rounded hover:bg-zinc-100"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => handleDeleteTool(deletingTool.id)}
+              className="px-3 py-1.5 bg-black text-white rounded font-bold hover:bg-zinc-800"
+            >
+              Delete Tool
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );

@@ -3,6 +3,7 @@ export interface ScheduleItem {
   date: string; // Format: "YYYY-MM-DD"
   address: string;
   assigneeId: number | null;
+  secondaryAssigneeId?: number | null; // Optional 2nd assignee ID
   toolId: number | null;
 }
 

@@ -1,21 +1,17 @@
 {
-  "short_name": "Planner",
-  "name": "Schedule Planner",
+  "short_name": "Schedule",
+  "name": "Schedule Manager",
   "icons": [
     {
-      "src": "apple-touch-icon.png",
-      "sizes": "180x180",
-      "type": "image/png"
-    },
-    {
-      "src": "logo512.png",
+      "src": "/apple-touch-icon-v2.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "sizes": "512x512"
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",
   "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "theme_color": "#ffffff",
   "display": "standalone",
   "orientation": "portrait"
 }

@@ -25,9 +25,9 @@ import {
 const DEFAULT_DATE = '2026-08-08';
 
 const INITIAL_SCHEDULES = [
-  { id: 1, date: '2026-08-08', address: '123 Tech Park, Cyberjaya', assigneeId: 1, toolId: 1 },
-  { id: 2, date: '2026-08-08', address: '456 Innovation Way, JB', assigneeId: 2, toolId: null },
-  { id: 3, date: '2026-08-08', address: '789 Main HQ', assigneeId: null, toolId: 2 }
+  { id: 1, date: '2026-08-08', address: '123 Tech Park, Cyberjaya', assigneeId: 1, secondaryAssigneeId: 2, toolId: 1 },
+  { id: 2, date: '2026-08-08', address: '456 Innovation Way, JB', assigneeId: 2, secondaryAssigneeId: null, toolId: null },
+  { id: 3, date: '2026-08-08', address: '789 Main HQ', assigneeId: null, secondaryAssigneeId: null, toolId: 2 }
 ];
 
 const INITIAL_ASSIGNEES = [
@@ -329,6 +329,7 @@ function ScheduleTab({
         <div className="space-y-2.5">
           {displayedItems.map((item) => {
             const assignee = assignees.find((a) => a.id === item.assigneeId);
+            const secondaryAssignee = assignees.find((a) => a.id === item.secondaryAssigneeId);
             const tool = tools.find((t) => t.id === item.toolId);
 
             return (
@@ -336,6 +337,7 @@ function ScheduleTab({
                 key={item.id}
                 item={item}
                 assignee={assignee}
+                secondaryAssignee={secondaryAssignee}
                 tool={tool}
                 savedTemplate={savedTemplate}
                 isEditMode={isEditMode}
@@ -512,14 +514,16 @@ function WeekHeaderStrip({ selectedDate, schedules, onDateSelected }) {
 }
 
 // Individual Schedule Card Component
-function ScheduleCard({ item, assignee, tool, savedTemplate, isEditMode, onEdit, onDelete }) {
+function ScheduleCard({ item, assignee, secondaryAssignee, tool, savedTemplate, isEditMode, onEdit, onDelete }) {
   const assigneeName = assignee ? assignee.name : 'Unassigned';
+  const secondaryAssigneeName = secondaryAssignee ? secondaryAssignee.name : 'None';
   const toolName = tool ? tool.name : 'None';
 
   const handleWhatsAppShare = () => {
     const rawTemplate = savedTemplate.trim() || DEFAULT_TEMPLATE;
     const formattedMessage = rawTemplate
       .replace(/{assignee}/g, assigneeName)
+      .replace(/{secondaryAssignee}/g, secondaryAssigneeName)
       .replace(/{name}/g, assigneeName)
       .replace(/{date}/g, item.date)
       .replace(/{address}/g, item.address)
@@ -574,6 +578,12 @@ function ScheduleCard({ item, assignee, tool, savedTemplate, isEditMode, onEdit,
           <User className="w-3 h-3 text-black" />
           {assigneeName}
         </span>
+        {secondaryAssignee && (
+          <span className="inline-flex items-center gap-1 text-[11px] font-mono bg-zinc-100 text-black px-2 py-0.5 rounded border border-black">
+            <User className="w-3 h-3 text-black" />
+            2nd: {secondaryAssignee.name}
+          </span>
+        )}
         <span className="inline-flex items-center gap-1 text-[11px] font-mono bg-white text-black px-2 py-0.5 rounded border border-black">
           <Wrench className="w-3 h-3 text-black" />
           {toolName}
@@ -587,11 +597,19 @@ function ScheduleCard({ item, assignee, tool, savedTemplate, isEditMode, onEdit,
 function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, onClose, onSave }) {
   const [address, setAddress] = useState(existingItem?.address || '');
 
+  // Primary Assignee State
   const initialAssignee = assignees.find((a) => a.id === existingItem?.assigneeId);
   const [assigneeSearch, setAssigneeSearch] = useState(initialAssignee?.name || '');
   const [selectedAssignee, setSelectedAssignee] = useState(initialAssignee || null);
   const [assigneeOpen, setAssigneeOpen] = useState(false);
 
+  // Secondary Assignee State
+  const initialSecondaryAssignee = assignees.find((a) => a.id === existingItem?.secondaryAssigneeId);
+  const [secondaryAssigneeSearch, setSecondaryAssigneeSearch] = useState(initialSecondaryAssignee?.name || '');
+  const [selectedSecondaryAssignee, setSelectedSecondaryAssignee] = useState(initialSecondaryAssignee || null);
+  const [secondaryAssigneeOpen, setSecondaryAssigneeOpen] = useState(false);
+
+  // Tool State
   const initialTool = tools.find((t) => t.id === existingItem?.toolId);
   const [toolSearch, setToolSearch] = useState(initialTool?.name || '');
   const [selectedTool, setSelectedTool] = useState(initialTool || null);
@@ -599,6 +617,10 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
 
   const filteredAssignees = assignees.filter((a) =>
     a.name.toLowerCase().startsWith(assigneeSearch.toLowerCase())
+  );
+
+  const filteredSecondaryAssignees = assignees.filter((a) =>
+    a.name.toLowerCase().startsWith(secondaryAssigneeSearch.toLowerCase())
   );
 
   const filteredTools = tools.filter((t) =>
@@ -612,6 +634,10 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
       selectedAssignee ||
       assignees.find((a) => a.name.toLowerCase() === assigneeSearch.trim().toLowerCase());
 
+    const finalSecondaryAssignee =
+      selectedSecondaryAssignee ||
+      assignees.find((a) => a.name.toLowerCase() === secondaryAssigneeSearch.trim().toLowerCase());
+
     const finalTool =
       selectedTool ||
       tools.find((t) => t.name.toLowerCase() === toolSearch.trim().toLowerCase());
@@ -621,6 +647,7 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
       date: selectedDate,
       address,
       assigneeId: finalAssignee ? finalAssignee.id : null,
+      secondaryAssigneeId: finalSecondaryAssignee ? finalSecondaryAssignee.id : null,
       toolId: finalTool ? finalTool.id : null
     });
   };
@@ -640,9 +667,9 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
           />
         </div>
 
-        {/* ASSIGNEE AUTOCOMPLETE */}
+        {/* PRIMARY ASSIGNEE AUTOCOMPLETE */}
         <div className="relative">
-          <label className="block text-black font-bold mb-1">ASSIGNEE</label>
+          <label className="block text-black font-bold mb-1">PRIMARY ASSIGNEE</label>
           <input
             type="text"
             value={assigneeSearch}
@@ -653,7 +680,7 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
               setAssigneeOpen(true);
             }}
             className="w-full bg-white border border-black rounded px-2.5 py-1.5 text-black focus:outline-none"
-            placeholder="Search assignee..."
+            placeholder="Search primary assignee..."
           />
 
           {assigneeOpen && (
@@ -675,6 +702,53 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
                     setSelectedAssignee(a);
                     setAssigneeSearch(a.name);
                     setAssigneeOpen(false);
+                  }}
+                  className="px-2.5 py-1.5 hover:bg-zinc-100 cursor-pointer text-black"
+                >
+                  {a.name}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* SECONDARY ASSIGNEE AUTOCOMPLETE */}
+        <div className="relative">
+          <label className="block text-black font-bold mb-1">
+            SECONDARY ASSIGNEE <span className="font-normal text-zinc-500">(OPTIONAL)</span>
+          </label>
+          <input
+            type="text"
+            value={secondaryAssigneeSearch}
+            onFocus={() => setSecondaryAssigneeOpen(true)}
+            onChange={(e) => {
+              setSecondaryAssigneeSearch(e.target.value);
+              setSelectedSecondaryAssignee(null);
+              setSecondaryAssigneeOpen(true);
+            }}
+            className="w-full bg-white border border-black rounded px-2.5 py-1.5 text-black focus:outline-none"
+            placeholder="Search 2nd assignee..."
+          />
+
+          {secondaryAssigneeOpen && (
+            <div className="absolute left-0 right-0 top-full mt-1 bg-white border-2 border-black rounded shadow-2xl max-h-36 overflow-y-auto z-30">
+              <div
+                onClick={() => {
+                  setSelectedSecondaryAssignee(null);
+                  setSecondaryAssigneeSearch('');
+                  setSecondaryAssigneeOpen(false);
+                }}
+                className="px-2.5 py-1.5 hover:bg-zinc-100 cursor-pointer text-zinc-500 font-bold border-b border-zinc-200"
+              >
+                [ None ]
+              </div>
+              {filteredSecondaryAssignees.map((a) => (
+                <div
+                  key={a.id}
+                  onClick={() => {
+                    setSelectedSecondaryAssignee(a);
+                    setSecondaryAssigneeSearch(a.name);
+                    setSecondaryAssigneeOpen(false);
                   }}
                   className="px-2.5 py-1.5 hover:bg-zinc-100 cursor-pointer text-black"
                 >
@@ -795,7 +869,11 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
   const handleDelete = (id) => {
     setAssignees((prev) => prev.filter((a) => a.id !== id));
     setSchedules((prev) =>
-      prev.map((s) => (s.assigneeId === id ? { ...s, assigneeId: null } : s))
+      prev.map((s) => ({
+        ...s,
+        assigneeId: s.assigneeId === id ? null : s.assigneeId,
+        secondaryAssigneeId: s.secondaryAssigneeId === id ? null : s.secondaryAssigneeId,
+      }))
     );
     setDeletingAssignee(null);
   };
@@ -1174,7 +1252,7 @@ function TemplatesTab({
   hasUnsaved,
   setHasUnsaved
 }) {
-  const tags = ['{assignee}', '{date}', '{address}', '{tool}'];
+  const tags = ['{assignee}', '{secondaryAssignee}', '{date}', '{address}', '{tool}'];
 
   const handleTextChange = (value) => {
     setTemplateDraft(value);
@@ -1196,6 +1274,7 @@ function TemplatesTab({
     const raw = templateDraft.trim() || DEFAULT_TEMPLATE;
     return raw
       .replace(/{assignee}/g, 'Alex')
+      .replace(/{secondaryAssignee}/g, 'Jordan')
       .replace(/{name}/g, 'Alex')
       .replace(/{date}/g, '2026-08-08')
       .replace(/{address}/g, '123 Tech Park, Cyberjaya')

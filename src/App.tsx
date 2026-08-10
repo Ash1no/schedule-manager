@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   Check,
   X,
-  BookOpen
+  BookOpen,
+  Clock
 } from 'lucide-react';
 
 // ============================================================================
@@ -25,9 +26,9 @@ import {
 const DEFAULT_DATE = '2026-08-08';
 
 const INITIAL_SCHEDULES = [
-  { id: 1, date: '2026-08-08', address: '123 Tech Park, Cyberjaya', assigneeId: 1, secondaryAssigneeId: 2, toolId: 1 },
-  { id: 2, date: '2026-08-08', address: '456 Innovation Way, JB', assigneeId: 2, secondaryAssigneeId: null, toolId: null },
-  { id: 3, date: '2026-08-08', address: '789 Main HQ', assigneeId: null, secondaryAssigneeId: null, toolId: 2 }
+  { id: 1, date: '2026-08-08', address: '123 Tech Park, Cyberjaya', assigneeId: 1, secondaryAssigneeId: 2, toolId: 1, isHalfDay: true, halfDayPeriod: 'AM' },
+  { id: 2, date: '2026-08-08', address: '456 Innovation Way, JB', assigneeId: 2, secondaryAssigneeId: null, toolId: null, isHalfDay: false, halfDayPeriod: 'AM' },
+  { id: 3, date: '2026-08-08', address: '789 Main HQ', assigneeId: null, secondaryAssigneeId: null, toolId: 2, isHalfDay: true, halfDayPeriod: 'PM' }
 ];
 
 const INITIAL_ASSIGNEES = [
@@ -43,7 +44,7 @@ const INITIAL_TOOLS = [
 ];
 
 const DEFAULT_TEMPLATE =
-  "Hi {assignee}, here is your schedule:\n\n📅 Date: {date}\n📍 Address: {address}\n🔧 Tool: {tool}";
+  "Hi {assignee}, here is your schedule:\n\n📅 Date: {date}\n⏱ Shift: {halfDay}\n📍 Address: {address}\n🔧 Tool: {tool}";
 
 function sanitizePhoneNumber(raw) {
   const digits = raw.replace(/\D/g, '');
@@ -82,7 +83,6 @@ function getMonday(date) {
 // ============================================================================
 
 export default function ScheduleManagerApp() {
-  // Persistence state
   const [schedules, setSchedules] = useState(() => {
     const saved = localStorage.getItem('sm_schedules');
     return saved ? JSON.parse(saved) : INITIAL_SCHEDULES;
@@ -106,23 +106,19 @@ export default function ScheduleManagerApp() {
     return localStorage.getItem('sm_template') || DEFAULT_TEMPLATE;
   });
 
-  // UI state
-  const [activeTab, setActiveTab] = useState(0); // 0: Schedule, 1: Assignees, 2: Tools, 3: Template
+  const [activeTab, setActiveTab] = useState(0);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // Template change tracking
   const [templateDraft, setTemplateDraft] = useState(savedTemplate);
   const [hasUnsavedTemplateChanges, setHasUnsavedTemplateChanges] = useState(false);
   const [pendingTab, setPendingTab] = useState(null);
 
-  // Sync state to local storage
   useEffect(() => { localStorage.setItem('sm_schedules', JSON.stringify(schedules)); }, [schedules]);
   useEffect(() => { localStorage.setItem('sm_assignees', JSON.stringify(assignees)); }, [assignees]);
   useEffect(() => { localStorage.setItem('sm_tools', JSON.stringify(tools)); }, [tools]);
   useEffect(() => { localStorage.setItem('sm_selected_date', selectedDate); }, [selectedDate]);
   useEffect(() => { localStorage.setItem('sm_template', savedTemplate); }, [savedTemplate]);
 
-  // Tab switch guard for unsaved template changes
   const handleTabSwitch = (targetTab) => {
     if (activeTab === 3 && hasUnsavedTemplateChanges) {
       setPendingTab(targetTab);
@@ -133,7 +129,6 @@ export default function ScheduleManagerApp() {
 
   return (
     <div className="h-screen h-[100dvh] bg-white text-black flex flex-col font-sans w-full max-w-md mx-auto overflow-hidden border-x border-black relative min-w-0">
-      {/* HEADER TOP BAR */}
       <header className="bg-white border-b border-black shrink-0 z-20">
         <div className="px-4 py-3 flex items-center justify-between">
           <h1 className="text-base font-bold tracking-tight text-black flex items-center gap-2 font-mono">
@@ -143,18 +138,14 @@ export default function ScheduleManagerApp() {
           {activeTab === 0 && (
             <div className="flex items-center gap-2">
               <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-black ${
-                isEditMode
-                  ? 'bg-black text-white'
-                  : 'bg-white text-black'
+                isEditMode ? 'bg-black text-white' : 'bg-white text-black'
               }`}>
                 {isEditMode ? 'EDIT' : 'VIEW'}
               </span>
               <button
                 onClick={() => setIsEditMode(!isEditMode)}
                 className={`p-1.5 rounded border border-black transition ${
-                  isEditMode
-                    ? 'bg-black text-white'
-                    : 'bg-white text-black hover:bg-zinc-100'
+                  isEditMode ? 'bg-black text-white' : 'bg-white text-black hover:bg-zinc-100'
                 }`}
                 title="Toggle Edit Mode"
               >
@@ -164,7 +155,6 @@ export default function ScheduleManagerApp() {
           )}
         </div>
 
-        {/* SCROLLABLE HORIZONTAL TAB STRIP */}
         <div className="flex gap-1.5 border-t border-black overflow-x-auto no-scrollbar whitespace-nowrap px-3 py-2 bg-white">
           <TabButton icon={<Calendar />} label="Schedules" active={activeTab === 0} onClick={() => handleTabSwitch(0)} />
           <TabButton icon={<User />} label="Assignees" active={activeTab === 1} onClick={() => handleTabSwitch(1)} />
@@ -179,7 +169,6 @@ export default function ScheduleManagerApp() {
         </div>
       </header>
 
-      {/* MAIN CONTENT AREA */}
       <main className="flex-1 w-full p-3.5 min-w-0 bg-white overflow-y-auto relative pb-24">
         {activeTab === 0 && (
           <ScheduleTab
@@ -224,7 +213,6 @@ export default function ScheduleManagerApp() {
         )}
       </main>
 
-      {/* UNSAVED CHANGES GUARD MODAL */}
       {pendingTab !== null && (
         <Modal onClose={() => setPendingTab(null)} title="Unsaved Edits">
           <p className="text-black text-xs font-mono mb-5 leading-relaxed">
@@ -255,15 +243,12 @@ export default function ScheduleManagerApp() {
   );
 }
 
-// Navigation Tab Component
 function TabButton({ icon, label, active, onClick, hasBadge }) {
   return (
     <button
       onClick={onClick}
       className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono transition rounded border border-black ${
-        active
-          ? 'bg-black text-white font-bold'
-          : 'bg-white text-black hover:bg-zinc-100'
+        active ? 'bg-black text-white font-bold' : 'bg-white text-black hover:bg-zinc-100'
       }`}
     >
       {React.cloneElement(icon, { className: 'w-3.5 h-3.5' })}
@@ -274,7 +259,7 @@ function TabButton({ icon, label, active, onClick, hasBadge }) {
 }
 
 // ============================================================================
-// TAB 1: SCHEDULE TAB & WEEK HEADER
+// TAB 1: SCHEDULE TAB
 // ============================================================================
 
 function ScheduleTab({
@@ -312,14 +297,12 @@ function ScheduleTab({
 
   return (
     <div className="space-y-3.5 min-w-0 bg-white">
-      {/* 7-DAY WEEK STRIP HEADER */}
       <WeekHeaderStrip
         selectedDate={selectedDate}
         schedules={schedules}
         onDateSelected={setSelectedDate}
       />
 
-      {/* SCHEDULE CARDS LIST */}
       {displayedItems.length === 0 ? (
         <div className="text-center py-12 bg-white rounded border-2 border-dashed border-black">
           <p className="text-black text-xs font-mono font-bold">NO ENTRIES FOR THIS DATE</p>
@@ -352,7 +335,6 @@ function ScheduleTab({
         </div>
       )}
 
-      {/* FAB BUTTON (PINNED WITHIN VISIBLE VIEWPORT) */}
       <div className="fixed bottom-6 left-0 right-0 max-w-md mx-auto px-4 pointer-events-none flex justify-end z-30">
         <button
           onClick={() => {
@@ -366,7 +348,6 @@ function ScheduleTab({
         </button>
       </div>
 
-      {/* ADD/EDIT MODAL */}
       {showAddEditModal && (
         <AddEditScheduleModal
           selectedDate={selectedDate}
@@ -378,7 +359,6 @@ function ScheduleTab({
         />
       )}
 
-      {/* SCHEDULE DELETE CONFIRMATION MODAL */}
       {deletingSchedule && (
         <Modal onClose={() => setDeletingSchedule(null)} title="Confirm Delete">
           <p className="text-black text-xs font-mono mb-4 leading-relaxed">
@@ -404,7 +384,6 @@ function ScheduleTab({
   );
 }
 
-// 7-Day Horizontal Week Selector Component
 function WeekHeaderStrip({ selectedDate, schedules, onDateSelected }) {
   const currentDate = useMemo(() => parseISO(selectedDate), [selectedDate]);
   const monday = useMemo(() => getMonday(currentDate), [currentDate]);
@@ -439,7 +418,6 @@ function WeekHeaderStrip({ selectedDate, schedules, onDateSelected }) {
 
   return (
     <div className="bg-white border-2 border-black rounded-lg p-2.5">
-      {/* Week Title Bar */}
       <div className="flex items-center justify-between mb-2 px-1">
         <button
           onClick={() => shiftWeek(-1)}
@@ -468,7 +446,6 @@ function WeekHeaderStrip({ selectedDate, schedules, onDateSelected }) {
         </button>
       </div>
 
-      {/* 7 Day Grid */}
       <div className="grid grid-cols-7 gap-1">
         {weekDays.map((dayDate) => {
           const iso = formatISO(dayDate);
@@ -494,7 +471,6 @@ function WeekHeaderStrip({ selectedDate, schedules, onDateSelected }) {
               <span className="text-[9px] tracking-tight">{dayName}</span>
               <span className="text-xs font-bold my-0.5">{dayNum}</span>
 
-              {/* Dot Indicators */}
               <div className="h-1.5 flex items-center justify-center gap-0.5">
                 {Array.from({ length: maxDots }).map((_, i) => (
                   <span
@@ -518,8 +494,8 @@ function ScheduleCard({ item, assignee, secondaryAssignee, tool, savedTemplate, 
   const assigneeName = assignee ? assignee.name : 'Unassigned';
   const secondaryAssigneeName = secondaryAssignee ? secondaryAssignee.name : 'None';
   const toolName = tool ? tool.name : 'None';
+  const halfDayText = item.isHalfDay ? `Half Day (${item.halfDayPeriod || 'AM'})` : 'Full Day';
 
-  // Updated to accept targetAssignee (defaults to primary assignee)
   const handleWhatsAppShare = (targetAssignee = assignee) => {
     const rawTemplate = savedTemplate.trim() || DEFAULT_TEMPLATE;
     const formattedMessage = rawTemplate
@@ -529,9 +505,9 @@ function ScheduleCard({ item, assignee, secondaryAssignee, tool, savedTemplate, 
       .replace(/{date}/g, item.date)
       .replace(/{address}/g, item.address)
       .replace(/{location}/g, item.address)
-      .replace(/{tool}/g, toolName);
+      .replace(/{tool}/g, toolName)
+      .replace(/{halfDay}/g, halfDayText);
 
-    // Sanitizes phone number of whichever assignee was clicked
     const cleanPhone = targetAssignee ? sanitizePhoneNumber(targetAssignee.phoneNumber) : '';
     const encodedText = encodeURIComponent(formattedMessage);
 
@@ -568,7 +544,7 @@ function ScheduleCard({ item, assignee, secondaryAssignee, tool, savedTemplate, 
           <button
             onClick={() => handleWhatsAppShare(assignee)}
             className="p-1.5 text-black hover:bg-zinc-100 rounded border border-black transition shrink-0"
-            title="Share with Primary Assignee"
+            title="Share via WhatsApp"
           >
             <Share2 className="w-3.5 h-3.5" />
           </button>
@@ -576,12 +552,20 @@ function ScheduleCard({ item, assignee, secondaryAssignee, tool, savedTemplate, 
       </div>
 
       <div className="flex flex-wrap gap-1.5 mt-2.5">
+        {/* Half Day Badge */}
+        {item.isHalfDay && (
+          <span className="inline-flex items-center gap-1 text-[11px] font-mono bg-black text-white font-bold px-2 py-0.5 rounded border border-black">
+            <Clock className="w-3 h-3 text-white" />
+            Half Day ({item.halfDayPeriod || 'AM'})
+          </span>
+        )}
+
         {/* Primary Assignee Badge */}
         <button
           type="button"
           onClick={() => handleWhatsAppShare(assignee)}
           className="inline-flex items-center gap-1 text-[11px] font-mono bg-white text-black px-2 py-0.5 rounded border border-black hover:bg-zinc-100 transition"
-          title={`Share message with ${assigneeName}`}
+          title={`Share with ${assigneeName}`}
         >
           <User className="w-3 h-3 text-black" />
           {assigneeName}
@@ -594,7 +578,7 @@ function ScheduleCard({ item, assignee, secondaryAssignee, tool, savedTemplate, 
             type="button"
             onClick={() => handleWhatsAppShare(secondaryAssignee)}
             className="inline-flex items-center gap-1 text-[11px] font-mono bg-zinc-100 text-black px-2 py-0.5 rounded border border-black hover:bg-zinc-200 transition"
-            title={`Share message with ${secondaryAssignee.name}`}
+            title={`Share with ${secondaryAssignee.name}`}
           >
             <User className="w-3 h-3 text-black" />
             2nd: {secondaryAssignee.name}
@@ -615,6 +599,10 @@ function ScheduleCard({ item, assignee, secondaryAssignee, tool, savedTemplate, 
 // Add / Edit Schedule Dialog Component
 function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, onClose, onSave }) {
   const [address, setAddress] = useState(existingItem?.address || '');
+  
+  // Half Day State
+  const [isHalfDay, setIsHalfDay] = useState(existingItem?.isHalfDay || false);
+  const [halfDayPeriod, setHalfDayPeriod] = useState(existingItem?.halfDayPeriod || 'AM');
 
   // Primary Assignee State
   const initialAssignee = assignees.find((a) => a.id === existingItem?.assigneeId);
@@ -667,7 +655,9 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
       address,
       assigneeId: finalAssignee ? finalAssignee.id : null,
       secondaryAssigneeId: finalSecondaryAssignee ? finalSecondaryAssignee.id : null,
-      toolId: finalTool ? finalTool.id : null
+      toolId: finalTool ? finalTool.id : null,
+      isHalfDay,
+      halfDayPeriod
     });
   };
 
@@ -684,6 +674,55 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
             className="w-full bg-white border border-black rounded px-2.5 py-1.5 text-black focus:outline-none"
             placeholder="e.g. 123 Tech Park, Cyberjaya"
           />
+        </div>
+
+        {/* HALF-DAY SELECTOR SECTION */}
+        <div className="border border-black rounded p-2.5 bg-zinc-50 space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer font-bold text-black select-none">
+            <input
+              type="checkbox"
+              checked={isHalfDay}
+              onChange={(e) => setIsHalfDay(e.target.checked)}
+              className="w-4 h-4 accent-black cursor-pointer rounded"
+            />
+            <span>Half-Day Job</span>
+          </label>
+
+          <div className="flex items-center justify-between pt-1 border-t border-zinc-200">
+            <span className={`text-[11px] font-bold ${isHalfDay ? 'text-black' : 'text-zinc-400'}`}>
+              Session:
+            </span>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                disabled={!isHalfDay}
+                onClick={() => setHalfDayPeriod('AM')}
+                className={`px-3 py-1 rounded text-xs font-bold transition border border-black ${
+                  !isHalfDay
+                    ? 'bg-zinc-200 text-zinc-400 border-zinc-300 cursor-not-allowed'
+                    : halfDayPeriod === 'AM'
+                    ? 'bg-black text-white'
+                    : 'bg-white text-black hover:bg-zinc-100'
+                }`}
+              >
+                AM
+              </button>
+              <button
+                type="button"
+                disabled={!isHalfDay}
+                onClick={() => setHalfDayPeriod('PM')}
+                className={`px-3 py-1 rounded text-xs font-bold transition border border-black ${
+                  !isHalfDay
+                    ? 'bg-zinc-200 text-zinc-400 border-zinc-300 cursor-not-allowed'
+                    : halfDayPeriod === 'PM'
+                    ? 'bg-black text-white'
+                    : 'bg-white text-black hover:bg-zinc-100'
+                }`}
+              >
+                PM
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* PRIMARY ASSIGNEE AUTOCOMPLETE */}
@@ -899,7 +938,6 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
 
   return (
     <div className="space-y-3 font-mono text-xs bg-white">
-      {/* ADD ASSIGNEE FORM CARD */}
       <div className="bg-white border-2 border-black rounded-lg p-3">
         <h2 className="text-black font-bold mb-2">+ ADD ASSIGNEE</h2>
         <div className="space-y-2">
@@ -935,7 +973,6 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
         </div>
       </div>
 
-      {/* ASSIGNEES LIST */}
       {assignees.length === 0 ? (
         <p className="text-center py-8 text-black font-bold">No assignees saved.</p>
       ) : (
@@ -975,7 +1012,6 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
         </div>
       )}
 
-      {/* DUPLICATE WARNING MODAL */}
       {duplicateWarning && (
         <Modal onClose={() => setDuplicateWarning(null)} title="Duplicate Name">
           <p className="text-black text-xs font-mono mb-4">
@@ -1000,7 +1036,6 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
         </Modal>
       )}
 
-      {/* EDIT ASSIGNEE MODAL */}
       {editingAssignee && (
         <EditAssigneeModal
           assignee={editingAssignee}
@@ -1012,7 +1047,6 @@ function AssigneesTab({ assignees, setAssignees, setSchedules }) {
         />
       )}
 
-      {/* DELETE CONFIRM MODAL */}
       {deletingAssignee && (
         <Modal onClose={() => setDeletingAssignee(null)} title="Confirm Delete">
           <p className="text-black text-xs font-mono mb-4">
@@ -1181,7 +1215,6 @@ function ToolsTab({ tools, setTools, setSchedules }) {
         />
       )}
 
-      {/* TOOL DELETE CONFIRMATION MODAL */}
       {deletingTool && (
         <Modal onClose={() => setDeletingTool(null)} title="Confirm Delete">
           <p className="text-black text-xs font-mono mb-4 leading-relaxed">
@@ -1271,7 +1304,7 @@ function TemplatesTab({
   hasUnsaved,
   setHasUnsaved
 }) {
-  const tags = ['{assignee}', '{secondaryAssignee}', '{date}', '{address}', '{tool}'];
+  const tags = ['{assignee}', '{secondaryAssignee}', '{date}', '{address}', '{tool}', '{halfDay}'];
 
   const handleTextChange = (value) => {
     setTemplateDraft(value);
@@ -1298,12 +1331,12 @@ function TemplatesTab({
       .replace(/{date}/g, '2026-08-08')
       .replace(/{address}/g, '123 Tech Park, Cyberjaya')
       .replace(/{location}/g, '123 Tech Park, Cyberjaya')
-      .replace(/{tool}/g, 'Drill Kit');
+      .replace(/{tool}/g, 'Drill Kit')
+      .replace(/{halfDay}/g, 'Half Day (AM)');
   }, [templateDraft]);
 
   return (
     <div className="space-y-3 font-mono text-xs bg-white">
-      {/* EDITOR CARD */}
       <div className="bg-white border-2 border-black rounded-lg p-3 space-y-2.5">
         <div className="flex items-center justify-between">
           <h2 className="font-bold text-black">MESSAGE TEMPLATE</h2>
@@ -1314,7 +1347,6 @@ function TemplatesTab({
           )}
         </div>
 
-        {/* Tag Injection Buttons */}
         <div className="flex flex-wrap gap-1">
           {tags.map((tag) => (
             <button
@@ -1346,7 +1378,6 @@ function TemplatesTab({
         </div>
       </div>
 
-      {/* LIVE PREVIEW CARD */}
       <div className="bg-white border-2 border-black rounded-lg p-3 space-y-1.5">
         <h3 className="text-[10px] uppercase font-bold tracking-wider text-black">
           PREVIEW DRAFT
@@ -1359,7 +1390,6 @@ function TemplatesTab({
   );
 }
 
-// General Modal Shell Component
 function Modal({ title, children, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 z-50">

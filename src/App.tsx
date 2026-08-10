@@ -689,13 +689,15 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
           </label>
 
           <div
-            className={`relative flex items-center bg-white border border-black rounded p-0.5 transition-opacity duration-200 ${
-              !isHalfDay ? 'opacity-30 pointer-events-none' : 'opacity-100'
+            className={`relative flex items-center border rounded p-0.5 transition-colors duration-200 ${
+              isHalfDay ? 'bg-white border-black' : 'bg-zinc-100 border-zinc-300'
             }`}
           >
-            {/* Sliding Pill Indicator */}
+            {/* Sliding Pill Indicator - Only visible when isHalfDay is true */}
             <div
-              className={`absolute top-0.5 bottom-0.5 w-[34px] bg-black rounded transition-transform duration-200 ease-out ${
+              className={`absolute top-0.5 bottom-0.5 w-[34px] bg-black rounded transition-all duration-200 ease-out ${
+                isHalfDay ? 'opacity-100' : 'opacity-0'
+              } ${
                 halfDayPeriod === 'PM' ? 'translate-x-[34px]' : 'translate-x-0'
               }`}
             />
@@ -706,7 +708,11 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
               disabled={!isHalfDay}
               onClick={() => setHalfDayPeriod('AM')}
               className={`relative z-10 w-[34px] h-6 flex items-center justify-center text-[11px] font-mono font-bold transition-colors duration-150 ${
-                halfDayPeriod === 'AM' && isHalfDay ? 'text-white' : 'text-black'
+                !isHalfDay
+                  ? 'text-zinc-400 cursor-not-allowed'
+                  : halfDayPeriod === 'AM'
+                  ? 'text-white'
+                  : 'text-black'
               }`}
             >
               AM
@@ -718,7 +724,11 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
               disabled={!isHalfDay}
               onClick={() => setHalfDayPeriod('PM')}
               className={`relative z-10 w-[34px] h-6 flex items-center justify-center text-[11px] font-mono font-bold transition-colors duration-150 ${
-                halfDayPeriod === 'PM' && isHalfDay ? 'text-white' : 'text-black'
+                !isHalfDay
+                  ? 'text-zinc-400 cursor-not-allowed'
+                  : halfDayPeriod === 'PM'
+                  ? 'text-white'
+                  : 'text-black'
               }`}
             >
               PM

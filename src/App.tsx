@@ -676,8 +676,8 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
           />
         </div>
 
-        {/* HALF-DAY SELECTOR SECTION */}
-        <div className="border border-black rounded p-2.5 bg-zinc-50 space-y-2">
+        {/* INLINE HALF-DAY SELECTOR WITH SLIDING SWITCH */}
+        <div className="border border-black rounded p-2.5 bg-zinc-50 flex items-center justify-between">
           <label className="flex items-center gap-2 cursor-pointer font-bold text-black select-none">
             <input
               type="checkbox"
@@ -688,40 +688,41 @@ function AddEditScheduleModal({ selectedDate, existingItem, assignees, tools, on
             <span>Half-Day Job</span>
           </label>
 
-          <div className="flex items-center justify-between pt-1 border-t border-zinc-200">
-            <span className={`text-[11px] font-bold ${isHalfDay ? 'text-black' : 'text-zinc-400'}`}>
-              Session:
-            </span>
-            <div className="flex gap-1">
-              <button
-                type="button"
-                disabled={!isHalfDay}
-                onClick={() => setHalfDayPeriod('AM')}
-                className={`px-3 py-1 rounded text-xs font-bold transition border border-black ${
-                  !isHalfDay
-                    ? 'bg-zinc-200 text-zinc-400 border-zinc-300 cursor-not-allowed'
-                    : halfDayPeriod === 'AM'
-                    ? 'bg-black text-white'
-                    : 'bg-white text-black hover:bg-zinc-100'
-                }`}
-              >
-                AM
-              </button>
-              <button
-                type="button"
-                disabled={!isHalfDay}
-                onClick={() => setHalfDayPeriod('PM')}
-                className={`px-3 py-1 rounded text-xs font-bold transition border border-black ${
-                  !isHalfDay
-                    ? 'bg-zinc-200 text-zinc-400 border-zinc-300 cursor-not-allowed'
-                    : halfDayPeriod === 'PM'
-                    ? 'bg-black text-white'
-                    : 'bg-white text-black hover:bg-zinc-100'
-                }`}
-              >
-                PM
-              </button>
-            </div>
+          <div
+            className={`relative flex items-center bg-white border border-black rounded p-0.5 transition-opacity duration-200 ${
+              !isHalfDay ? 'opacity-30 pointer-events-none' : 'opacity-100'
+            }`}
+          >
+            {/* Sliding Pill Indicator */}
+            <div
+              className={`absolute top-0.5 bottom-0.5 w-[34px] bg-black rounded transition-transform duration-200 ease-out ${
+                halfDayPeriod === 'PM' ? 'translate-x-[34px]' : 'translate-x-0'
+              }`}
+            />
+
+            {/* AM Option */}
+            <button
+              type="button"
+              disabled={!isHalfDay}
+              onClick={() => setHalfDayPeriod('AM')}
+              className={`relative z-10 w-[34px] h-6 flex items-center justify-center text-[11px] font-mono font-bold transition-colors duration-150 ${
+                halfDayPeriod === 'AM' && isHalfDay ? 'text-white' : 'text-black'
+              }`}
+            >
+              AM
+            </button>
+
+            {/* PM Option */}
+            <button
+              type="button"
+              disabled={!isHalfDay}
+              onClick={() => setHalfDayPeriod('PM')}
+              className={`relative z-10 w-[34px] h-6 flex items-center justify-center text-[11px] font-mono font-bold transition-colors duration-150 ${
+                halfDayPeriod === 'PM' && isHalfDay ? 'text-white' : 'text-black'
+              }`}
+            >
+              PM
+            </button>
           </div>
         </div>
 

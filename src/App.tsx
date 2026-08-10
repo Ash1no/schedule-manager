@@ -519,7 +519,8 @@ function ScheduleCard({ item, assignee, secondaryAssignee, tool, savedTemplate, 
   const secondaryAssigneeName = secondaryAssignee ? secondaryAssignee.name : 'None';
   const toolName = tool ? tool.name : 'None';
 
-  const handleWhatsAppShare = () => {
+  // Updated to accept targetAssignee (defaults to primary assignee)
+  const handleWhatsAppShare = (targetAssignee = assignee) => {
     const rawTemplate = savedTemplate.trim() || DEFAULT_TEMPLATE;
     const formattedMessage = rawTemplate
       .replace(/{assignee}/g, assigneeName)
@@ -530,7 +531,8 @@ function ScheduleCard({ item, assignee, secondaryAssignee, tool, savedTemplate, 
       .replace(/{location}/g, item.address)
       .replace(/{tool}/g, toolName);
 
-    const cleanPhone = assignee ? sanitizePhoneNumber(assignee.phoneNumber) : '';
+    // Sanitizes phone number of whichever assignee was clicked
+    const cleanPhone = targetAssignee ? sanitizePhoneNumber(targetAssignee.phoneNumber) : '';
     const encodedText = encodeURIComponent(formattedMessage);
 
     const url = cleanPhone
@@ -564,9 +566,9 @@ function ScheduleCard({ item, assignee, secondaryAssignee, tool, savedTemplate, 
           </div>
         ) : (
           <button
-            onClick={handleWhatsAppShare}
+            onClick={() => handleWhatsAppShare(assignee)}
             className="p-1.5 text-black hover:bg-zinc-100 rounded border border-black transition shrink-0"
-            title="Share via WhatsApp"
+            title="Share with Primary Assignee"
           >
             <Share2 className="w-3.5 h-3.5" />
           </button>
@@ -574,16 +576,33 @@ function ScheduleCard({ item, assignee, secondaryAssignee, tool, savedTemplate, 
       </div>
 
       <div className="flex flex-wrap gap-1.5 mt-2.5">
-        <span className="inline-flex items-center gap-1 text-[11px] font-mono bg-white text-black px-2 py-0.5 rounded border border-black">
+        {/* Primary Assignee Badge */}
+        <button
+          type="button"
+          onClick={() => handleWhatsAppShare(assignee)}
+          className="inline-flex items-center gap-1 text-[11px] font-mono bg-white text-black px-2 py-0.5 rounded border border-black hover:bg-zinc-100 transition"
+          title={`Share message with ${assigneeName}`}
+        >
           <User className="w-3 h-3 text-black" />
           {assigneeName}
-        </span>
+          {!isEditMode && <Share2 className="w-2.5 h-2.5 ml-0.5 opacity-60" />}
+        </button>
+
+        {/* Secondary Assignee Badge */}
         {secondaryAssignee && (
-          <span className="inline-flex items-center gap-1 text-[11px] font-mono bg-zinc-100 text-black px-2 py-0.5 rounded border border-black">
+          <button
+            type="button"
+            onClick={() => handleWhatsAppShare(secondaryAssignee)}
+            className="inline-flex items-center gap-1 text-[11px] font-mono bg-zinc-100 text-black px-2 py-0.5 rounded border border-black hover:bg-zinc-200 transition"
+            title={`Share message with ${secondaryAssignee.name}`}
+          >
             <User className="w-3 h-3 text-black" />
             2nd: {secondaryAssignee.name}
-          </span>
+            {!isEditMode && <Share2 className="w-2.5 h-2.5 ml-0.5 opacity-60" />}
+          </button>
         )}
+
+        {/* Tool Badge */}
         <span className="inline-flex items-center gap-1 text-[11px] font-mono bg-white text-black px-2 py-0.5 rounded border border-black">
           <Wrench className="w-3 h-3 text-black" />
           {toolName}
